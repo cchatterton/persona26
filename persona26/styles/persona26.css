@@ -1,0 +1,86 @@
+.p26-main-panel,
+.p26-sub-panel {
+    display: none;
+}
+
+.p26-main-panel.active,
+.p26-sub-panel.active {
+    display: block;
+}
+
+.p26-form-panel {
+    max-width: 980px;
+}
+
+.p26-card {
+    margin: 16px 0;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+}
+
+.p26-post-type-column {
+    width: 45%;
+}
+
+.p26-context-column {
+    width: 50%;
+}
+
+.p26-action-column {
+    width: 5%;
+}
+
+.p26-checkbox-grid {
+    columns: 2;
+    column-gap: 24px;
+}
+
+.p26-checkbox {
+    display: block;
+    margin: 0 0 6px;
+    break-inside: avoid;
+}
+
+.is-locked .p26-remove {
+    display: none;
+}
+
+.p26-locked {
+    opacity: .6;
+}
+
+.p26-matrix td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.p26-heat td {
+    position: relative;
+}
+
+.link-button {
+    padding: 0 6px;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+.p26-main-tabs {
+    margin-bottom: 18px;
+}
+
+.p26-sub-tabs {
+    margin-bottom: 16px;
+}
+
+.p26-users-summary {
+    margin: 0 0 10px;
+}
+
+@media (max-width: 782px) {
+    .p26-checkbox-grid {
+        columns: 1;
+    }
+}
