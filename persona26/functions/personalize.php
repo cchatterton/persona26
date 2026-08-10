@@ -24,8 +24,8 @@ function p26_personalize_dimension_post_types(): array {
     foreach ($dims as $dim) {
         if (!is_array($dim)) continue;
 
-        $pt = sanitize_key($dim['post_type'] ?? '');
-        if ($pt) {
+        $pt = (string) ($dim['post_type'] ?? '');
+        if ($pt && post_type_exists($pt)) {
             $post_types[] = $pt;
         }
     }

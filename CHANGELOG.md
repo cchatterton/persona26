@@ -2,6 +2,14 @@
 
 All notable changes to Persona26 are recorded here.
 
+## 0.6 - 2026-08-10
+
+- Reconciled the production 0.5 Gravity Forms integration with the GitHub 0.3 metadata release.
+- Added Persona26 Gravity Forms feeds for incrementing or replacing profile dimension values.
+- Added dynamic Persona26 choices and profile defaults for Gravity Forms radio and checkbox fields, including advertised context-name CSS tokens such as `p26-dimension-audience`.
+- Preserved exact registered post-type keys throughout Gravity Forms, profiling, personalisation, and queryable metadata.
+- Retained the automatic scalar-meta backfill, accessible Persona Targets editor, and compliant native GitHub updater from 0.3.
+
 ## 0.3 - 2026-08-10
 
 - Added exact, queryable scalar post meta for configured persona dimensions while preserving `p26_alignment`.

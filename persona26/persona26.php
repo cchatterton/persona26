@@ -3,7 +3,7 @@
  * Plugin Name: Persona26
  * Plugin URI: https://github.com/cchatterton/persona26/releases/latest
  * Description: Extends IA with cookie and tracks related sessions
- * Version: 0.3
+ * Version: 0.6
  * Requires at least: 6.0
  * Requires PHP: 8.1
  * Update URI: https://github.com/cchatterton/persona26
@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('P26_VERSION', '0.3');
+define('P26_VERSION', '0.6');
 define('P26_PLUGIN_FILE', __FILE__);
 define('P26_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('P26_PLUGIN_URL', plugin_dir_url(__FILE__));
@@ -32,6 +32,7 @@ $functions = array(
     'meta.php', 
     'profile.php', 
     'personalize.php',
+    'gravity-forms.php',
     'github-updater.php',
  );
     

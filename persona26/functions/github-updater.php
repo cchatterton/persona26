@@ -90,7 +90,7 @@ final class P26_GitHub_Updater {
             'requires'       => '6.0',
             'requires_php'   => '8.1',
             'sections'       => array(
-                'description' => 'Extends Independent Analytics with visitor persona tracking and personalisation.',
+                'description' => 'Extends Independent Analytics with visitor persona tracking, Gravity Forms integration, and personalisation.',
                 'changelog'   => wp_kses_post((string) ($release['body'] ?? '')),
             ),
         );
