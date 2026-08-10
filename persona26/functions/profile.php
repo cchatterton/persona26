@@ -130,10 +130,10 @@ class P26_Profile {
             if (!is_array($dim)) continue;
 
             $dim_key  = sanitize_key($dim['key'] ?? '');
-            $dim_pt   = sanitize_key($dim['post_type'] ?? '');
+            $dim_pt   = (string) ($dim['post_type'] ?? '');
             $dim_name = sanitize_text_field($dim['context'] ?? '');
 
-            if (!$dim_key || !$dim_pt) continue;
+            if (!$dim_key || !$dim_pt || !post_type_exists($dim_pt)) continue;
 
             $ids = $map[$dim_key] ?? [];
             if (!is_array($ids) || empty($ids)) continue;

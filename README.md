@@ -2,7 +2,7 @@
 
 Persona26 extends Independent Analytics with visitor identity mapping, engagement dimensions, profile data, and front-end personalisation support.
 
-Version 0.3 adds exact scalar dimension metadata for direct WordPress and AlphaBlock queries while preserving the existing Persona26 alignment structure.
+Version 0.6 combines exact scalar dimension metadata for direct WordPress and AlphaBlock queries with the production Gravity Forms integration while preserving the existing Persona26 alignment structure.
 
 ## Release
 
