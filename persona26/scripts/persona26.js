@@ -5,6 +5,7 @@
         bindTabs('.p26-main-tabs .nav-tab', '.p26-main-panel', 'tab');
         bindTabs('.p26-sub-tabs .nav-tab', '.p26-sub-panel', 'subtab');
         bindRepeater();
+        bindAlignmentPickers();
     });
 
     function bindTabs(tabSelector, panelSelector, dataKey) {
@@ -91,6 +92,132 @@
             if (input) {
                 input.name = 'p26_tracked[' + index + '][context]';
             }
+        });
+    }
+
+    function bindAlignmentPickers() {
+        document.querySelectorAll('.p26-tagbox[data-field]').forEach(function(root) {
+            var tagsWrap = root.querySelector('.p26-tags');
+            var toggle = root.querySelector('.p26-picker-toggle');
+            var dropdown = root.querySelector('.p26-dropdown');
+            var hiddenWrap = root.querySelector('.p26-hidden');
+
+            if (!tagsWrap || !toggle || !dropdown || !hiddenWrap) {
+                return;
+            }
+
+            function selectedInput(id) {
+                return Array.from(hiddenWrap.querySelectorAll('input[type="hidden"]')).find(function(input) {
+                    return input.value === id;
+                });
+            }
+
+            function optionFor(id) {
+                return Array.from(dropdown.querySelectorAll('.p26-option')).find(function(option) {
+                    return option.dataset.id === id;
+                });
+            }
+
+            function closePicker() {
+                dropdown.hidden = true;
+                toggle.setAttribute('aria-expanded', 'false');
+            }
+
+            function openPicker() {
+                dropdown.hidden = false;
+                toggle.setAttribute('aria-expanded', 'true');
+
+                var firstOption = dropdown.querySelector('.p26-option:not([hidden])');
+                if (firstOption) {
+                    firstOption.focus();
+                }
+            }
+
+            function removeTag(pill) {
+                var id = pill.dataset.id;
+                var hiddenInput = selectedInput(id);
+                var option = optionFor(id);
+
+                if (hiddenInput) {
+                    hiddenInput.remove();
+                }
+                if (option) {
+                    option.hidden = false;
+                }
+                pill.remove();
+            }
+
+            function bindRemoveButton(button) {
+                button.addEventListener('click', function() {
+                    var pill = button.closest('.p26-tag');
+                    if (pill) {
+                        removeTag(pill);
+                    }
+                });
+            }
+
+            function addTag(id, label) {
+                if (selectedInput(id)) {
+                    return;
+                }
+
+                var pill = document.createElement('span');
+                var pillLabel = document.createElement('span');
+                var removeButton = document.createElement('button');
+                var hiddenInput = document.createElement('input');
+
+                pill.className = 'p26-tag';
+                pill.dataset.id = id;
+                pillLabel.className = 'p26-tag-label';
+                pillLabel.textContent = label;
+
+                removeButton.type = 'button';
+                removeButton.className = 'p26-tag-remove';
+                removeButton.setAttribute('aria-label', 'Remove ' + label);
+                removeButton.textContent = '×';
+                bindRemoveButton(removeButton);
+
+                pill.appendChild(pillLabel);
+                pill.appendChild(removeButton);
+                tagsWrap.appendChild(pill);
+
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = root.dataset.field + '[]';
+                hiddenInput.value = id;
+                hiddenWrap.appendChild(hiddenInput);
+            }
+
+            toggle.addEventListener('click', function() {
+                if (dropdown.hidden) {
+                    openPicker();
+                } else {
+                    closePicker();
+                }
+            });
+
+            dropdown.querySelectorAll('.p26-option').forEach(function(option) {
+                option.addEventListener('click', function() {
+                    addTag(option.dataset.id, option.dataset.label);
+                    option.hidden = true;
+                    closePicker();
+                    toggle.focus();
+                });
+            });
+
+            root.querySelectorAll('.p26-tag-remove').forEach(bindRemoveButton);
+
+            root.addEventListener('keydown', function(event) {
+                if ('Escape' === event.key && !dropdown.hidden) {
+                    closePicker();
+                    toggle.focus();
+                }
+            });
+
+            document.addEventListener('click', function(event) {
+                if (!root.contains(event.target)) {
+                    closePicker();
+                }
+            });
         });
     }
 })();
