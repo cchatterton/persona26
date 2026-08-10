@@ -86,13 +86,17 @@ function p26_get_settings(): array {
     if (empty($settings['tracked'][1]['context'])) $settings['tracked'][1]['context'] = 'Interests';
 
     foreach ($settings['tracked'] as &$row) {
-        $row['post_type'] = sanitize_key($row['post_type'] ?? '');
+        $post_type = (string) ($row['post_type'] ?? '');
+        $row['post_type'] = post_type_exists($post_type) ? $post_type : '';
         $row['context']   = sanitize_text_field($row['context'] ?? '');
     }
     unset($row);
 
     $settings['content_post_types'] = array_values(
-        array_map('sanitize_key', $settings['content_post_types'] ?? [])
+        array_filter(
+            array_map('strval', $settings['content_post_types'] ?? []),
+            'post_type_exists'
+        )
     );
 
     return $settings;

@@ -31,10 +31,12 @@ function p26_save_settings(): void {
 
     $tracked = [];
     $posted_tracked = isset($_POST['p26_tracked']) ? (array) wp_unslash($_POST['p26_tracked']) : [];
+    $available_post_types = array_keys(p26_all_post_types());
 
     foreach ($posted_tracked as $row) {
+        $post_type = (string) ($row['post_type'] ?? '');
         $tracked[] = [
-            'post_type' => sanitize_key($row['post_type'] ?? ''),
+            'post_type' => in_array($post_type, $available_post_types, true) ? $post_type : '',
             'context'   => sanitize_text_field($row['context'] ?? ''),
         ];
     }
@@ -49,12 +51,18 @@ function p26_save_settings(): void {
 
     // Only store checked post types (slugs)
     $posted_content_post_types = isset($_POST['p26_content_post_types']) ? (array) wp_unslash($_POST['p26_content_post_types']) : [];
-    $content_pts = array_map('sanitize_key', array_keys($posted_content_post_types));
+    $content_pts = array_values(
+        array_intersect(
+            array_keys($posted_content_post_types),
+            $available_post_types
+        )
+    );
 
     update_option(P26_SETTINGS_OPTION, [
         'tracked'            => $tracked,
         'content_post_types' => $content_pts,
     ], true);
+    p26_queue_alignment_mirror_migration();
 
     wp_safe_redirect(admin_url('admin.php?page=' . P26_MENU_SLUG));
     exit;
