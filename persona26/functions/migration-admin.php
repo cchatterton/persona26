@@ -152,6 +152,11 @@ function p26_legacy_render_wizard(bool $recovery = false): void {
             p26_legacy_form_start('include_scope');
             echo '<button class="button" type="submit">Include detected content types</button></form>';
         }
+        if (!empty($plan['skipped_missing'])) {
+            echo '<details><summary>' . (int) count($plan['skipped_missing']) . ' references to deleted records skipped</summary><p>These selections already point to records that no longer exist. Valid selections are migrated; original metadata is retained.</p><ul>';
+            foreach ($plan['skipped_missing'] as $missing) echo '<li>Post #' . (int) $missing['post_id'] . ': ' . esc_html($missing['meta_key']) . ' → deleted record #' . (int) $missing['target_id'] . '</li>';
+            echo '</ul></details>';
+        }
         if ($plan['blockers']) {
             echo '<div class="notice notice-error inline"><p><strong>Resolve these before committing</strong></p><ul>';
             foreach ($plan['blockers'] as $blocker) echo '<li>' . esc_html($blocker) . '</li>';

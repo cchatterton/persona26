@@ -1,3 +1,11 @@
+## 0.7.4 - 2026-09-12
+
+- Convert saved JSON definitions, post-type dropdown choices and serialized ACF location rules and taxonomy assignments.
+- Migrate AIOSEO post-type selections and WP Engine cache post-type dictionaries.
+- Move Content Planner plan option names, XP pattern keys and pattern metadata to mapped post types, protecting existing destination plans.
+- Skip references to deleted records, retain valid selections and report the skipped count without blocking migration.
+- Preserve taxonomy identifiers, original relationship metadata and exact rollback data.
+
 ## 0.7.3 - 2026-09-12
 
 - Focus migration on saved site configuration; remove source-file scanning and its commit blockers.

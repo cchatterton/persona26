@@ -64,72 +64,6 @@ function p26_legacy_has_reference(?string $value): bool {
     return null !== $value && (bool) preg_match('/__persona|__interest|target_personas|target_interests|field_personas|field_interests/', $value);
 }
 
-/** Context separates a CPT slug from the identically named relationship field. */
-function p26_legacy_transform($value, array $map, string $context = '', int $depth = 0) {
-    if ($depth > 40) throw new RuntimeException('Reference nesting exceeds the safe limit.');
-    $meta = [];
-    foreach (p26_legacy_sources() as $source => $keys) {
-        foreach ($keys as $key) $meta[$key] = $map[$source]['alias'];
-        $meta['field_' . ('__persona' === $source ? 'personas' : 'interests')] = $map[$source]['field'];
-    }
-    if (is_array($value)) {
-        $out = [];
-        foreach ($value as $key => $child) {
-            $new_key = $key;
-            // A literal relationship key in a structured object refers to metadata.
-            if (is_string($key) && isset($meta[$key])) $new_key = $meta[$key];
-            if (array_key_exists($new_key, $out) || ($new_key !== $key && array_key_exists($new_key, $value))) {
-                throw new RuntimeException('Replacing a reference would overwrite an existing key.');
-            }
-            $out[$new_key] = p26_legacy_transform($child, $map, is_int($key) ? $context : (string) $key, $depth + 1);
-        }
-        return $out;
-    }
-    if (!is_string($value) || !p26_legacy_has_reference($value)) return $value;
-    if (is_serialized($value)) {
-        return serialize(p26_legacy_transform(p26_legacy_decode($value), $map, $context, $depth + 1));
-    }
-    $trimmed = trim($value);
-    if (str_starts_with($trimmed, '{') || str_starts_with($trimmed, '[')) {
-        $json = json_decode($value, true, 40);
-        if (JSON_ERROR_NONE === json_last_error() && is_array($json)) {
-            // Decode as objects too, to preserve empty objects versus empty arrays.
-            $walk = static function ($item, $key = '') use (&$walk, $map, $depth) {
-                if (is_object($item)) {
-                    $result = new stdClass();
-                    foreach (get_object_vars($item) as $k => $v) {
-                        $keys = p26_legacy_transform([$k => null], $map, '', $depth + 1);
-                        $new = array_key_first($keys);
-                        if ($new !== $k && property_exists($item, $new)) throw new RuntimeException('Duplicate JSON key after replacement.');
-                        $result->{$new} = $walk($v, $k);
-                    }
-                    return $result;
-                }
-                if (is_array($item)) return array_map(static fn($v) => $walk($v, $key), $item);
-                return p26_legacy_transform($item, $map, $key, $depth + 1);
-            };
-            $encoded = wp_json_encode($walk(json_decode($value)), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
-            if (!is_string($encoded)) throw new RuntimeException('Cannot encode translated JSON.');
-            return $encoded;
-        }
-    }
-    $key = strtolower(str_replace(['_', '-'], '', $context));
-    if (isset($map[$value]) && in_array($key, ['posttype', 'posttypes', 'objecttype', 'menuitemobject'], true)) return $map[$value]['post_type'];
-    if (isset($meta[$value]) && (in_array($key, ['metakey', 'field', 'fieldname', 'fieldkey', 'key', 'name'], true) || str_starts_with($value, 'field_') || str_starts_with($value, 'target_'))) return $meta[$value];
-    throw new RuntimeException('Unrecognised reference context: ' . ($context ?: 'plain text') . '.');
-}
-
-/** Change only block JSON comments, keeping saved HTML byte-for-byte intact. */
-function p26_legacy_content(string $content, array $map): string {
-    $result = preg_replace_callback('/<!--\s+wp:[a-z0-9_\/-]+\s+(\{.*?\})\s*\/?-->/s', static function ($match) use ($map) {
-        if (!p26_legacy_has_reference($match[1])) return $match[0];
-        return str_replace($match[1], p26_legacy_transform($match[1], $map), $match[0]);
-    }, $content);
-    if (!is_string($result)) throw new RuntimeException('Cannot parse block comments.');
-    if (p26_legacy_has_reference($result)) throw new RuntimeException('Reference outside supported block attributes; a block or template adapter is required.');
-    return $result;
-}
-
 function p26_legacy_rows(string $query): array {
     global $wpdb;
     $rows = $wpdb->get_results($query, ARRAY_A);
@@ -157,7 +91,7 @@ function p26_legacy_reference_excerpt(?string $value): string {
 function p26_legacy_plan(bool $lock = false): array {
     global $wpdb;
     $map = p26_legacy_mapping();
-    $plan = ['mapping' => $map, 'settings' => p26_settings(), 'posts' => [], 'meta' => [], 'other' => [], 'blockers' => [], 'scope_required' => [], 'preserved' => ['revisions' => 0, 'orphaned_meta' => 0], 'counts' => ['personas' => 0, 'interests' => 0, 'tagged_content' => 0, 'reference_records' => 0]];
+    $plan = ['mapping' => $map, 'settings' => p26_settings(), 'posts' => [], 'meta' => [], 'other' => [], 'blockers' => [], 'skipped_missing' => [], 'scope_required' => [], 'preserved' => ['revisions' => 0, 'orphaned_meta' => 0], 'counts' => ['personas' => 0, 'interests' => 0, 'tagged_content' => 0, 'reference_records' => 0]];
     $suffix = ' LIMIT ' . P26_LEGACY_LIMIT . ($lock ? ' FOR UPDATE' : '');
     $posts = p26_legacy_rows("SELECT * FROM {$wpdb->posts} WHERE post_type IN ('__persona','__interest') OR " . p26_legacy_like('post_content') . ' OR ' . p26_legacy_like('post_excerpt') . ' ORDER BY ID' . $suffix);
     $source_ids = [];
@@ -205,7 +139,7 @@ function p26_legacy_plan(bool $lock = false): array {
                     foreach ($ids as $id) {
                         if (!(is_int($id) || (is_string($id) && ctype_digit($id))) || (int) $id < 1) throw new RuntimeException('Invalid relationship ID value: ' . substr((string) wp_json_encode($id), 0, 80));
                         $target = $source_ids[(int) $id] ?? $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->posts} WHERE ID = %d", $id), ARRAY_A);
-                        if (!$target) throw new RuntimeException("Relationship ID $id no longer exists. Restore it or explicitly repair this tag before migration.");
+                        if (!$target) { $plan['skipped_missing'][] = ['post_id' => $post_id, 'meta_key' => $row['meta_key'], 'target_id' => (int) $id]; continue; }
                         if (!in_array($target['post_type'], [$source, $map[$source]['post_type']], true)) throw new RuntimeException("Relationship ID $id is type {$target['post_type']}; expected $source or {$map[$source]['post_type']}.");
                         $source_ids[(int) $id] = $target;
                         if ('publish' !== $source_ids[(int) $id]['post_status']) throw new RuntimeException("Relationship ID $id has status {$source_ids[(int) $id]['post_status']}; resolve its status before migration.");
@@ -218,7 +152,8 @@ function p26_legacy_plan(bool $lock = false): array {
             if (in_array($row['meta_key'], array_map(static fn($k) => '_' . $k, $keys), true)) continue;
             if (p26_legacy_has_reference($row['meta_value'])) {
                 try {
-                    $after[$index]['meta_value'] = p26_legacy_transform($row['meta_value'], $map, (string) $row['meta_key']);
+                    $input = '_tncp_pattern' === $row['meta_key'] ? p26_legacy_pattern($row['meta_value'], $map) : $row['meta_value'];
+                    $after[$index]['meta_value'] = p26_legacy_transform($input, $map, (string) $row['meta_key']);
                     $plan['counts']['reference_records']++;
                 } catch (RuntimeException $error) { $plan['blockers'][] = "Post $post_id meta {$row['meta_id']}: " . $error->getMessage(); }
             }
@@ -271,6 +206,7 @@ function p26_legacy_plan(bool $lock = false): array {
     }
     foreach (['options' => ['option_id', 'option_value'], 'termmeta' => ['meta_id', 'meta_value'], 'commentmeta' => ['meta_id', 'meta_value']] as $table => [$id, $value]) {
         $where = p26_legacy_like($value);
+        if ('options' === $table) $where = '(' . $where . " OR option_name IN ('tncp_plan___persona','tncp_plan___interest'))";
         if ('options' === $table) $where .= " AND option_name NOT LIKE 'p26\\_%' AND option_name NOT LIKE '\\_transient\\_%' AND option_name NOT LIKE '\\_site\\_transient\\_%' AND option_name NOT LIKE 'options\\_\\_\\_%' AND option_name NOT LIKE '\\_options\\_\\_\\_%' AND option_name NOT LIKE 'persona\\_%' AND option_name NOT IN ('active_plugins','recently_activated','acf_site_health','rewrite_rules')";
         foreach (p26_legacy_rows("SELECT * FROM {$wpdb->$table} WHERE $where ORDER BY $id" . $suffix) as $row) {
             try {
@@ -278,7 +214,17 @@ function p26_legacy_plan(bool $lock = false): array {
                 $context = (string) ($row['meta_key'] ?? $row['option_name'] ?? '');
                 // Verified post-type lists in Yoast Duplicate Post and Relevanssi.
                 if ('options' === $table && in_array($row['option_name'], ['duplicate_post_types_enabled', 'relevanssi_index_post_types'], true)) $context = 'post_type';
-                $after[$value] = p26_legacy_transform($row[$value], $map, $context);
+                $input = $row[$value];
+                if ('options' === $table && ('tncp_patterns' === $context || str_starts_with($context, 'tncp_plan_'))) {
+                    $input = maybe_serialize(p26_legacy_planner(p26_legacy_decode($input), $map));
+                    $source = substr($context, strlen('tncp_plan_'));
+                    if (isset($map[$source])) {
+                        $after['option_name'] = 'tncp_plan_' . $map[$source]['post_type'];
+                        $collision = $wpdb->get_var($wpdb->prepare("SELECT option_id FROM {$wpdb->options} WHERE option_name = %s LIMIT 1", $after['option_name']));
+                        if ($collision) throw new RuntimeException('Destination Content Planner plan already exists; merge the plans before migration.');
+                    }
+                }
+                $after[$value] = p26_legacy_transform($input, $map, $context);
                 if ($after !== $row) { $plan['other'][] = ['table' => $table, 'id' => $id, 'before' => $row, 'after' => $after]; $plan['counts']['reference_records']++; }
             } catch (RuntimeException $error) { $plan['blockers'][] = "$table {$row[$id]} (" . ($row['option_name'] ?? $row['meta_key'] ?? 'unnamed') . '): ' . $error->getMessage() . ' Reference: ' . p26_legacy_reference_excerpt($row[$value]); }
         }
@@ -480,6 +426,10 @@ function p26_legacy_rollback(string $token, bool $check_only = false): array {
             if ($current !== $expected) throw new RuntimeException("Metadata for post $post_id changed after migration. Rollback stopped without changing data.");
         }
         foreach ($plan['other'] as $change) {
+            if ('options' === $change['table'] && $change['before']['option_name'] !== $change['after']['option_name']) {
+                $conflict = $wpdb->get_var($wpdb->prepare("SELECT option_id FROM {$wpdb->options} WHERE option_name = %s LIMIT 1 FOR UPDATE", $change['before']['option_name']));
+                if ($conflict) throw new RuntimeException('An original Content Planner plan was recreated after migration. Recovery stopped.');
+            }
             $current = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->{$change['table']}} WHERE {$change['id']} = %d FOR UPDATE", $change['before'][$change['id']]), ARRAY_A);
             if ($current !== $change['after']) throw new RuntimeException("A migrated {$change['table']} record changed. Rollback stopped without changing data.");
         }
@@ -503,7 +453,10 @@ function p26_legacy_rollback(string $token, bool $check_only = false): array {
 function p26_legacy_clear_caches(array $plan): void {
     foreach (array_unique(array_merge(array_keys($plan['posts']), array_keys($plan['meta']))) as $id) clean_post_cache($id);
     foreach ($plan['other'] as $change) {
-        if ('options' === $change['table']) wp_cache_delete($change['before']['option_name'], 'options');
+        if ('options' === $change['table']) {
+            wp_cache_delete($change['before']['option_name'], 'options');
+            wp_cache_delete($change['after']['option_name'], 'options');
+        }
         if ('termmeta' === $change['table']) wp_cache_delete($change['before']['term_id'], 'term_meta');
         if ('commentmeta' === $change['table']) wp_cache_delete($change['before']['comment_id'], 'comment_meta');
     }

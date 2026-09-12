@@ -132,7 +132,7 @@ try {
     wp_delete_post($collision, true);
     $bad_meta = add_post_meta($post, '__persona', ['999999999']);
     $blocked = p26_legacy_simulate();
-    p26_mtest((bool)array_filter($blocked['plan']['blockers'], static fn($b)=>str_contains($b,'999999999 no longer exists')), 'Missing relationship IDs block migration');
+    p26_mtest(!$blocked['plan']['blockers'] && $blocked['plan']['skipped_missing'][0]['target_id'] === 999999999, 'Missing relationship IDs are reported and skipped');
     delete_metadata_by_mid('post', $bad_meta);
     $source_fixture = WPMU_PLUGIN_DIR . '/p26-migration-code-fixture.php';
     file_put_contents($source_fixture, '<?php // query __persona');
