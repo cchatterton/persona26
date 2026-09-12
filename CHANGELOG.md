@@ -1,3 +1,10 @@
+## 0.7.2 - 2026-09-12
+
+- Removed the fixed 4 MiB migration snapshot ceiling.
+- Store recovery snapshots as compressed, non-autoloaded database chunks with integrity verification.
+- Preserve atomic commit and rollback when a snapshot chunk cannot be written or read.
+- Continue reading existing migration snapshots and check available PHP memory before encoding or restoring larger ones.
+
 ## 0.7.1 - 2026-09-12
 
 - Moved legacy destination mapping and its independent save action into Migrate Wizard.

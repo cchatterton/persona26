@@ -1,4 +1,4 @@
 {
-  "version": "0.7.1",
-  "body": "## 0.7.1 - 2026-09-12\n\n- Moved legacy destination mapping and its independent save action into Migrate Wizard.\n- Kept recovery on the wizard tab after Personas deactivation while a committed snapshot exists.\n- Fixed mapping field alignment with paired labels and responsive columns.\n- Fixed migration simulation on SQL NULL metadata, preserving those values through commit and rollback.\n- Kept migration actions on the wizard tab and invalidated stale previews after mapping changes.\n"
+  "version": "0.7.2",
+  "body": "## 0.7.2 - 2026-09-12\n\n- Removed the fixed 4 MiB migration snapshot ceiling.\n- Store recovery snapshots as compressed, non-autoloaded database chunks with integrity verification.\n- Preserve atomic commit and rollback when a snapshot chunk cannot be written or read.\n- Continue reading existing migration snapshots and check available PHP memory before encoding or restoring larger ones.\n"
 }

@@ -6,7 +6,8 @@ const P26_LEGACY_MAP = 'p26_legacy_mapping';
 const P26_LEGACY_JOURNAL = 'p26_legacy_journal';
 const P26_LEGACY_COMPAT = 'p26_legacy_compat';
 const P26_LEGACY_LIMIT = 10000;
-const P26_LEGACY_BYTES = 4194304;
+const P26_LEGACY_CHUNK_PREFIX = 'p26_legacy_snapshot_';
+const P26_LEGACY_CHUNK_BYTES = 196608;
 
 function p26_legacy_plugin(): array {
     if (!function_exists('get_plugins')) require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -267,7 +268,7 @@ function p26_legacy_plan(bool $lock = false): array {
         }
     }
     $plan['blockers'] = array_values(array_unique(array_merge($plan['blockers'], p26_legacy_code_references())));
-    if (strlen(serialize($plan)) > P26_LEGACY_BYTES) throw new RuntimeException('The migration snapshot exceeds 4 MiB. No content was changed; use a reviewed batch migration.');
+    p26_legacy_snapshot_memory(strlen(serialize($plan)));
     return $plan;
 }
 
@@ -345,14 +346,73 @@ function p26_legacy_transaction(callable $callback) {
     }
 }
 
+/** Check available PHP headroom instead of imposing a fixed snapshot size. */
+function p26_legacy_snapshot_memory(int $bytes): void {
+    $limit = wp_convert_hr_to_bytes(ini_get('memory_limit'));
+    if ($limit > 0 && $bytes * 4 > $limit - memory_get_usage(true)) {
+        throw new RuntimeException('The migration needs more PHP memory for its recovery snapshot. Increase the admin PHP memory limit and run the simulation again. No content was changed.');
+    }
+}
+
+/** Metadata-only reads keep the tab check independent of snapshot size. */
+function p26_legacy_journal_status(): string {
+    global $wpdb;
+    $raw = $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s", P26_LEGACY_JOURNAL));
+    $journal = $raw ? (array) p26_legacy_decode($raw) : [];
+    return (string) ($journal['status'] ?? '');
+}
+
 function p26_legacy_read_journal(bool $lock = false): array {
     global $wpdb;
-    $raw = $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s" . ($lock ? ' FOR UPDATE' : ''), P26_LEGACY_JOURNAL));
-    return $raw ? (array) p26_legacy_decode($raw) : [];
+    // One statement observes the manifest and its chunks from the same database snapshot.
+    $rows = $wpdb->get_results($wpdb->prepare("SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name = %s OR option_name LIKE %s ORDER BY option_name" . ($lock ? ' FOR UPDATE' : ''), P26_LEGACY_JOURNAL, $wpdb->esc_like(P26_LEGACY_CHUNK_PREFIX) . '%'), OBJECT_K);
+    if ($wpdb->last_error) throw new RuntimeException('Cannot read the migration recovery snapshot.');
+    if (!isset($rows[P26_LEGACY_JOURNAL])) return [];
+    $journal = (array) p26_legacy_decode($rows[P26_LEGACY_JOURNAL]->option_value);
+    if (!isset($journal['_snapshot'])) return $journal; // Existing 0.7.0/0.7.1 snapshots.
+    $manifest = $journal['_snapshot'];
+    if (!is_array($manifest) || 1 !== ($manifest['format'] ?? null) || !is_int($manifest['chunks'] ?? null) || $manifest['chunks'] < 1 || !is_int($manifest['bytes'] ?? null) || $manifest['bytes'] < 1) throw new RuntimeException('Invalid migration snapshot manifest. Recovery stopped.');
+    p26_legacy_snapshot_memory($manifest['bytes']);
+    $packed = '';
+    for ($i = 0; $i < $manifest['chunks']; $i++) {
+        $name = P26_LEGACY_CHUNK_PREFIX . sprintf('%06d', $i);
+        if (!isset($rows[$name])) throw new RuntimeException('A migration snapshot chunk is missing. Recovery stopped without changing data.');
+        $part = base64_decode($rows[$name]->option_value, true);
+        if (false === $part) throw new RuntimeException('A migration snapshot chunk is invalid. Recovery stopped.');
+        $packed .= $part;
+        unset($rows[$name]);
+    }
+    $raw = 'deflate' === ($manifest['encoding'] ?? '') && function_exists('gzinflate') ? @gzinflate($packed, $manifest['bytes']) : $packed;
+    if (!is_string($raw) || strlen($raw) !== $manifest['bytes'] || !hash_equals((string) ($manifest['sha256'] ?? ''), hash('sha256', $raw))) throw new RuntimeException('Migration snapshot integrity check failed. Recovery stopped without changing data.');
+    $decoded = p26_legacy_decode($raw);
+    if (!is_array($decoded)) throw new RuntimeException('Invalid migration recovery data.');
+    return $decoded;
+}
+
+/** Called inside the migration transaction, so partial snapshots are never published. */
+function p26_legacy_delete_journal(): void {
+    global $wpdb;
+    p26_legacy_sql($wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->options} WHERE option_name = %s OR option_name LIKE %s", P26_LEGACY_JOURNAL, $wpdb->esc_like(P26_LEGACY_CHUNK_PREFIX) . '%')));
 }
 
 function p26_legacy_write_option(string $name, array $value): void {
     global $wpdb;
+    if (P26_LEGACY_JOURNAL === $name) {
+        $raw = serialize($value);
+        p26_legacy_snapshot_memory(strlen($raw));
+        $packed = function_exists('gzdeflate') ? gzdeflate($raw, 6) : false;
+        $encoding = false === $packed ? 'raw' : 'deflate';
+        if (false === $packed) $packed = $raw;
+        $count = (int) ceil(strlen($packed) / P26_LEGACY_CHUNK_BYTES);
+        $manifest = ['format' => 1, 'encoding' => $encoding, 'chunks' => $count, 'bytes' => strlen($raw), 'sha256' => hash('sha256', $raw)];
+        p26_legacy_delete_journal();
+        for ($i = 0; $i < $count; $i++) {
+            $chunk = base64_encode(substr($packed, $i * P26_LEGACY_CHUNK_BYTES, P26_LEGACY_CHUNK_BYTES));
+            p26_legacy_sql($wpdb->insert($wpdb->options, ['option_name' => P26_LEGACY_CHUNK_PREFIX . sprintf('%06d', $i), 'option_value' => $chunk, 'autoload' => 'off']));
+        }
+        unset($value['plan']);
+        $value['_snapshot'] = $manifest;
+    }
     p26_legacy_sql($wpdb->query($wpdb->prepare("INSERT INTO {$wpdb->options} (option_name, option_value, autoload) VALUES (%s, %s, 'off') ON DUPLICATE KEY UPDATE option_value = VALUES(option_value), autoload = 'off'", $name, serialize($value))));
 }
 
