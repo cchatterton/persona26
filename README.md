@@ -1,10 +1,10 @@
-# TN Persona26
+# Persona26
 
 Persona26 extends Independent Analytics with visitor identity mapping, engagement dimensions, profile data, and front-end personalisation support.
 
-Version 0.6.1 applies the current Techn branding, WordPress plugin and GitHub update standards while retaining the existing alignment structure and Gravity Forms integration.
+Version 0.6.2 applies the current Techn branding, WordPress plugin and GitHub update standards while retaining the existing alignment structure and Gravity Forms integration.
 
-Branding mode: **Author Branded — Techn** on the standalone settings page; **Extension Branded — Gravity Forms** for embedded feeds. Plugin slug, text domain and existing `p26_` storage keys remain unchanged.
+Branding mode: **Author Branded — Techn** on the standalone settings page; **Extension Branded — Gravity Forms** for embedded feeds. The interface follows the approved Content Planner reference: product-only labels, full-width layout, matching typography, right-aligned pill badges and rounded tabs with an orange top selection accent. Techn authorship remains in plugin metadata. Plugin slug, text domain and existing `p26_` storage keys remain unchanged.
 
 ## Release
 

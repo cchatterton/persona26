@@ -13,8 +13,8 @@ class P26_Gravity_Forms_Addon extends GFFeedAddOn {
     protected $_slug = 'persona26';
     protected $_path = 'persona26/persona26.php';
     protected $_full_path = P26_PLUGIN_FILE;
-    protected $_title = 'TN Persona26';
-    protected $_short_title = 'TN Persona26';
+    protected $_title = 'Persona26';
+    protected $_short_title = 'Persona26';
     protected $_async_feed_processing = false;
 
     private static $_instance = null;
