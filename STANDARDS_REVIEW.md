@@ -1,3 +1,19 @@
+# Persona26 0.7.2 large recovery snapshots
+
+Replaced the fixed 4 MiB recovery limit with compressed, non-autoloaded database
+chunks. Root manifest and chunks are read in one statement for a consistent view;
+all replacements stay inside the existing InnoDB migration transaction. Length and
+SHA-256 validation protect recovery. Existing journals remain readable. A lightweight
+status read avoids loading the full snapshot just to determine tab visibility.
+
+Regression coverage includes a snapshot over 4 MiB, exact restoration of a large
+unrelated value, missing/corrupt chunks, injected chunk-write failure and compatibility
+with pre-chunked journals. The migration suite passed under a 256 MiB PHP limit.
+This change removes the reported storage ceiling; migrations still execute in one
+request and remain subject to server memory/time and existing row-count limits.
+
+---
+
 # Persona26 0.7.1 migration corrections
 
 The user's correction moves migration-specific mapping, saving and recovery into

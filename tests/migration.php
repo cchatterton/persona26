@@ -123,10 +123,42 @@ try {
     $blocked = p26_legacy_simulate();
     unlink($unsafe_file);
     p26_mtest((bool)array_filter($blocked['plan']['blockers'], static fn($b)=>str_contains($b,'Hard-coded')), 'Hard-coded active component references block migration');
+    // A realistic incompressible field creates a before/after snapshot well over 4 MiB.
+    $large_value = base64_encode(random_bytes(1800000));
+    add_post_meta($post, 'large_unrelated_payload', $large_value);
+    $large = p26_legacy_simulate();
+    p26_mtest(strlen(serialize($large['plan'])) > 4194304, 'Large fixture exceeds the former 4 MiB limit');
+    $manifest = unserialize($wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name=%s", P26_LEGACY_JOURNAL)), ['allowed_classes'=>false]);
+    p26_mtest($manifest['_snapshot']['chunks'] > 1 && !isset($manifest['plan']), 'Large recovery data is stored in multiple non-autoloaded chunks');
+    $chunk_name = P26_LEGACY_CHUNK_PREFIX . '000000';
+    $chunk_value = $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name=%s", $chunk_name));
+    $wpdb->delete($wpdb->options, ['option_name'=>$chunk_name]);
+    p26_mreject(static fn()=>p26_legacy_commit($large['token']), 'Missing snapshot chunk blocks commit');
+    $wpdb->insert($wpdb->options, ['option_name'=>$chunk_name,'option_value'=>$chunk_value,'autoload'=>'off']);
+    $wpdb->update($wpdb->options, ['option_value'=>base64_encode('corrupt')], ['option_name'=>$chunk_name]);
+    p26_mreject(static fn()=>p26_legacy_commit($large['token']), 'Corrupted snapshot blocks commit');
+    $wpdb->update($wpdb->options, ['option_value'=>$chunk_value], ['option_name'=>$chunk_name]);
+    $fail_chunk = static fn($query) => str_starts_with($query, 'INSERT INTO') && str_contains($query, P26_LEGACY_CHUNK_PREFIX . '000001') ? 'P26_INTENTIONAL_INVALID_SQL' : $query;
+    add_filter('query', $fail_chunk);
+    $old_suppress = $wpdb->suppress_errors(true);
+    p26_mreject(static fn()=>p26_legacy_commit($large['token']), 'Failed chunk write rolls back the entire migration');
+    remove_filter('query', $fail_chunk); $wpdb->suppress_errors($old_suppress);
+    p26_mtest(p26_legacy_read_journal() === $large && get_post_type($a) === '__persona', 'Failed chunk write retains the complete prior preview and source posts');
+    p26_legacy_commit($large['token']);
+    p26_legacy_rollback($large['token']);
+    p26_mtest(get_post_meta($post,'large_unrelated_payload',true) === $large_value && get_post_type($a) === '__persona', 'Large snapshot commits and rolls back without changing unrelated bytes');
+    delete_post_meta($post, 'large_unrelated_payload');
+    // Backward compatibility with journals written before chunked storage.
+    $legacy = p26_legacy_simulate();
+    $wpdb->update($wpdb->options, ['option_value'=>serialize($legacy)], ['option_name'=>P26_LEGACY_JOURNAL]);
+    p26_mtest(p26_legacy_read_journal() === $legacy, 'Existing single-option journals remain readable');
+    p26_legacy_commit($legacy['token']);
+    p26_legacy_rollback($legacy['token']);
+    p26_mtest(get_post_type($a) === '__persona', 'Existing preview upgrades to chunked storage and rolls back');
     update_option(P26_LEGACY_MAP, ['__persona'=>'d0','__interest'=>'d0']);
     p26_mreject(static fn()=>p26_legacy_simulate(), 'Duplicate destination rejected');
 } finally {
-    delete_option(P26_LEGACY_COMPAT); delete_option(P26_LEGACY_JOURNAL); delete_option($option_name);
+    delete_option(P26_LEGACY_COMPAT); p26_legacy_delete_journal(); delete_option($option_name);
     if ($term_id) wp_delete_term($term_id, 'category');
     if ($comment_id) wp_delete_comment($comment_id, true);
     foreach ($ids as $id) wp_delete_post($id, true);

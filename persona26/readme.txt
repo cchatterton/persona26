@@ -3,7 +3,7 @@ Contributors:
 Tags: personalisation, analytics, audience, profiles, gravity-forms
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 0.7.1
+Stable tag: 0.7.2
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -90,8 +90,9 @@ made after commit and refuses to overwrite them. Keep Persona26 active while
 translated relationships are used. Mapped dimension post types cannot be changed
 while migration compatibility is active.
 
-The site-local p26_legacy_journal option stores before/after records (including
-changed option values), non-autoloaded, for recovery. It is retained until a
+The site-local p26_legacy_journal option stores a recovery manifest; compressed
+before/after records (including changed option values) are kept in non-autoloaded
+p26_legacy_snapshot_* options. Integrity is checked before use. It is retained until a
 new simulation replaces a rolled-back preview. A committed snapshot is not
 automatically discarded. Deactivation retains the journal and compatibility data.
 
@@ -104,7 +105,8 @@ are retained rather than rewritten. Theme/plugin files, external systems,
 legacy visitor-history files and URL redirects are not converted.
 
 Interactive migrations require InnoDB. Each scanned result set must be below
-10,000 rows; snapshots are limited to 4 MiB. Active-code inspection is bounded
+10,000 rows. Snapshots use database chunks instead of a fixed 4 MiB ceiling;
+available PHP memory still limits the total working set. Active-code inspection is bounded
 at 15,000 PHP/JS/JSON files and 100 MiB. Larger sites stop without changing
 content and need a reviewed batch migration. The snapshot is a migration undo
 record, not a replacement for a complete site backup.
@@ -128,6 +130,10 @@ submitted form values. Their own configuration and privacy documentation govern
 any services those plugins use.
 
 == Changelog ==
+
+= 0.7.2 =
+* Replaced the 4 MiB snapshot ceiling with compressed chunked recovery storage.
+* Verified snapshot integrity and preserved atomic writes and existing journals.
 
 = 0.7.1 =
 * Moved mapping, saving and recovery into Migrate Wizard; corrected field layout.

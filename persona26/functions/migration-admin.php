@@ -58,7 +58,7 @@ function p26_legacy_notice(): void {
 
 /** Keep recovery on the same tab after the source plugin is deactivated. */
 function p26_legacy_show_wizard(): bool {
-    return (bool) p26_legacy_plugin() || 'committed' === (p26_legacy_read_journal()['status'] ?? '');
+    return (bool) p26_legacy_plugin() || 'committed' === p26_legacy_journal_status();
 }
 
 function p26_legacy_save_mapping(array $posted): void {
@@ -73,7 +73,7 @@ function p26_legacy_save_mapping(array $posted): void {
         if ('committed' === ($journal['status'] ?? '')) throw new RuntimeException('Roll back the committed migration before changing its mapping.');
         p26_legacy_mapping($mapping);
         p26_legacy_write_option(P26_LEGACY_MAP, $mapping);
-        if ('preview' === ($journal['status'] ?? '')) p26_legacy_sql($wpdb->delete($wpdb->options, ['option_name' => P26_LEGACY_JOURNAL]));
+        if ('preview' === ($journal['status'] ?? '')) p26_legacy_delete_journal();
     });
     foreach ([P26_LEGACY_MAP, P26_LEGACY_JOURNAL, 'alloptions', 'notoptions'] as $key) wp_cache_delete($key, 'options');
 }

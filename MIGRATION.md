@@ -63,9 +63,16 @@ not create false recovery conflicts. WordPress caches and derived CSS are refres
 after commit/rollback; external page/object cache integrations may require their own
 purge. The database undo record does not replace a full database/files backup.
 
-Snapshots remain in `p26_legacy_journal`; they may contain private changed option
-values and are never exposed through public endpoints. There is one site-local
-snapshot, capped at 4 MiB, and no automatic expiry. A committed snapshot cannot be
+The `p26_legacy_journal` manifest and non-autoloaded `p26_legacy_snapshot_*` options
+retain one site-local recovery snapshot with no automatic expiry. Snapshot data may
+contain private changed option values and is never exposed through public endpoints.
+The former 4 MiB ceiling is removed. Serialized recovery data is compressed when zlib
+is available and stored in chunks of at most 256 KiB after base64 encoding. Manifest
+and chunks are read together in one SQL statement and replaced in one transaction.
+Length and SHA-256 checks reject missing/corrupted chunks. Existing single-option
+journals remain readable and become chunked on their next write. A PHP memory-headroom
+check guards serialization/restoration; this is chunked storage, not a background
+content migration, so PHP memory/time and the existing row limits still apply. A committed snapshot cannot be
 replaced by another simulation. Successful rollback allows a new simulation. Settings
 cannot remap migrated destination dimensions while compatibility is active.
 
@@ -81,6 +88,10 @@ release does not silently run a partial/batched migration on large sites.
   templates, navigation, term/comment metadata and byte-exact rollback.
 - NULL metadata is preserved during simulation, commit and exact rollback. Wizard
   mapping saves independently of general settings and invalidates stale previews.
+- A snapshot exceeding 4 MiB with an incompressible unrelated metadata value passes
+  simulation, commit and byte-exact rollback. Missing/corrupt chunks and a forced
+  chunk-write failure are rejected without partial migration. Existing journal
+  formats remain readable and recoverable.
 - Negative cases cover stale previews/tokens, injected mid-commit SQL failure,
   post-commit edits, unsupported objects/contexts, ID/key/slug collisions and active
   hard-coded source consumers.
