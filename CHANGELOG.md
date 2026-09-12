@@ -1,3 +1,11 @@
+## 0.7.1 - 2026-09-12
+
+- Moved legacy destination mapping and its independent save action into Migrate Wizard.
+- Kept recovery on the wizard tab after Personas deactivation while a committed snapshot exists.
+- Fixed mapping field alignment with paired labels and responsive columns.
+- Fixed migration simulation on SQL NULL metadata, preserving those values through commit and rollback.
+- Kept migration actions on the wizard tab and invalidated stale previews after mapping changes.
+
 ## 0.7.0 - 2026-09-12
 
 - Added Migrate Wizard when the original Personas plugin is active on the current site, including network activation.

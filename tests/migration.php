@@ -31,6 +31,9 @@ try {
     update_post_meta($post, P26_ALIGNMENT_META, ['dims'=>['d0'=>[$existing]]]);
     p26_sync_alignment_mirrors($post, get_post_meta($post, P26_ALIGNMENT_META, true));
     add_post_meta($post, 'unrelated', 'Keep me');
+    $wpdb->insert($wpdb->postmeta, ['post_id'=>$post, 'meta_key'=>'nullable_unrelated', 'meta_value'=>null]);
+    $wpdb->insert($wpdb->postmeta, ['post_id'=>$post, 'meta_key'=>'target_personas', 'meta_value'=>null]);
+    p26_mtest(!p26_legacy_has_reference(null) && null === p26_legacy_decode(null), 'SQL NULL metadata is supported without coercing stored values');
     $old = $make('post', 'Legacy pre-3 content');
     add_post_meta($old, 'target_personas', [(string)$a]); add_post_meta($old, 'target_interests', [(string)$i]);
     add_post_meta($old, '_target_personas', 'field_personas');
@@ -45,6 +48,11 @@ try {
     $before = $wpdb->get_results("SELECT * FROM {$wpdb->postmeta} WHERE post_id IN ($post,$old) ORDER BY meta_id", ARRAY_A);
     $journal = p26_legacy_simulate();
     p26_mtest(!$journal['plan']['blockers'], 'Both legacy layouts produce a clean preview: ' . implode('; ', $journal['plan']['blockers']));
+    $mapping_settings = p26_settings();
+    p26_mreject(static fn()=>p26_legacy_save_mapping(['__persona'=>'d0','__interest'=>'d0']), 'Invalid wizard mapping leaves settings untouched');
+    p26_legacy_save_mapping(['__persona'=>'d0','__interest'=>'d1']);
+    p26_mtest(p26_legacy_read_journal() === [] && p26_settings() === $mapping_settings, 'Saving wizard mapping clears stale preview without changing dimensions or scope');
+    $journal = p26_legacy_simulate();
     p26_mtest($journal['plan']['counts']['tagged_content'] === 2, 'Preview counts tagged content');
     p26_mtest(get_post_type($a) === '__persona' && $before === $wpdb->get_results("SELECT * FROM {$wpdb->postmeta} WHERE post_id IN ($post,$old) ORDER BY meta_id", ARRAY_A), 'Simulation leaves content and metadata byte-for-byte unchanged');
     p26_mreject(static fn()=>p26_legacy_commit('stale-token'), 'Stale token rejected');
@@ -78,7 +86,7 @@ try {
     p26_mtest(get_post_meta($old, '_menu_item_object', true) === 'migration_audience', 'Navigation menu object type translated');
     p26_mtest(get_post_meta($old, '_builder', true)['query']['post_type'] === ['migration_audience','migration_interest'], 'Serialized nested postmeta references translated');
     update_option('active_plugins', $original_active);
-    p26_mtest(!p26_legacy_plugin(), 'Wizard condition disappears after legacy deactivation');
+    p26_mtest(!p26_legacy_plugin() && p26_legacy_show_wizard(), 'Recovery stays on wizard tab after legacy deactivation');
     p26_legacy_rollback($journal['token'], true);
     p26_mtest(get_post_type($a) === 'migration_audience', 'Rollback check is read-only with legacy plugin off');
     // An unchanged mirror refresh must not invalidate the recovery snapshot.
@@ -89,6 +97,7 @@ try {
     p26_mtest(get_post_type($a) === 'migration_audience', 'A rollback conflict causes no partial restoration');
     delete_post_meta($post, 'later_edit');
     p26_legacy_rollback($journal['token']);
+    p26_mtest(!p26_legacy_show_wizard(), 'Wizard hides once recovery is complete and legacy is inactive');
     p26_mtest(get_post_type($a) === '__persona' && get_post_field('post_content',$post) === $body, 'Rollback restores original CPT and block bytes');
     p26_mtest($before === $wpdb->get_results("SELECT * FROM {$wpdb->postmeta} WHERE post_id IN ($post,$old) ORDER BY meta_id", ARRAY_A), 'Rollback restores exact metadata IDs, values and ordering');
     p26_mtest(get_option($option_name) === ['post_type'=>'__interest','meta_key'=>'__persona'], 'Rollback restores serialized options');

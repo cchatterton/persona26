@@ -1,3 +1,22 @@
+# Persona26 0.7.1 migration corrections
+
+The user's correction moves migration-specific mapping, saving and recovery into
+Migrate Wizard. Destination post types and the general audience model remain configured
+separately. The wizard remains available after legacy deactivation while its committed
+recovery snapshot exists. Server-rendered state retains the selected tab after actions.
+
+The reported TypeError was reproduced using SQL NULL metadata alongside legacy tags.
+Nullable reference scanning and decoding now preserve these values through simulation,
+commit and byte-exact rollback. Mapping saves have their own nonce/capability-gated
+action, validate configured destinations, preserve general settings and clear stale
+previews. Committed mappings remain protected by the existing transaction lock.
+
+Migration integration tests, PHP syntax and package validation passed. Browser checks
+cover independent mapping save, tab retention, commit/recovery, paired field geometry,
+keyboard access and responsive axe scans at 1440, 768, 390 and 320 pixels.
+
+---
+
 # Persona26 0.7.0 migration wizard
 
 The original Personas 3.1 source and both of its relationship naming layouts were

@@ -72,14 +72,6 @@ function p26_save_settings(): void {
         'tracked'            => $tracked,
         'content_post_types' => $content_pts,
     ], true);
-    if (p26_legacy_plugin()) {
-        $mapping = isset($_POST['p26_legacy_mapping']) ? (array) wp_unslash($_POST['p26_legacy_mapping']) : [];
-        $saved_mapping = [];
-        foreach (p26_legacy_sources() as $source => $keys) {
-            $saved_mapping[$source] = is_string($mapping[$source] ?? null) ? sanitize_key($mapping[$source]) : '';
-        }
-        update_option(P26_LEGACY_MAP, $saved_mapping, false);
-    }
     p26_queue_alignment_mirror_migration();
 
     p26_rebuild_personalize_css();
@@ -95,6 +87,7 @@ function p26_render_page(): void {
     if (!current_user_can('manage_options')) {
         wp_die(esc_html__('You do not have permission to manage these settings.', 'persona26'));
     }
+    $migration_selected = p26_legacy_show_wizard() && '1' === ($_GET['p26_migration'] ?? '');
     $settings = p26_get_settings();
     $pts      = p26_all_post_types();
 
@@ -129,14 +122,14 @@ function p26_render_page(): void {
         </header>
 
         <div class="nav-tab-wrapper p26-main-tabs" role="tablist" aria-label="Persona settings">
-            <button type="button" id="p26-tab-dimensions" class="nav-tab nav-tab-active" role="tab" aria-selected="true" aria-controls="p26-panel-dimensions" data-tab="dimensions">Dimensions</button>
+            <button type="button" id="p26-tab-dimensions" class="nav-tab<?php echo $migration_selected ? '' : ' nav-tab-active'; ?>" role="tab" aria-selected="<?php echo $migration_selected ? 'false' : 'true'; ?>" tabindex="<?php echo $migration_selected ? '-1' : '0'; ?>" aria-controls="p26-panel-dimensions" data-tab="dimensions">Dimensions</button>
             <button type="button" id="p26-tab-matrix" class="nav-tab" role="tab" aria-selected="false" tabindex="-1" aria-controls="p26-panel-matrix" data-tab="matrix">Engagement matrix</button>
-            <?php if (p26_legacy_plugin()): ?>
-                <button type="button" id="p26-tab-migrate" class="nav-tab" role="tab" aria-selected="false" tabindex="-1" aria-controls="p26-panel-migrate" data-tab="migrate">Migrate Wizard</button>
+            <?php if (p26_legacy_show_wizard()): ?>
+                <button type="button" id="p26-tab-migrate" class="nav-tab<?php echo $migration_selected ? ' nav-tab-active' : ''; ?>" role="tab" aria-selected="<?php echo $migration_selected ? 'true' : 'false'; ?>" tabindex="<?php echo $migration_selected ? '0' : '-1'; ?>" aria-controls="p26-panel-migrate" data-tab="migrate">Migrate Wizard</button>
             <?php endif; ?>
         </div>
 
-        <div id="p26-panel-dimensions" class="p26-main-panel active" role="tabpanel" aria-labelledby="p26-tab-dimensions" data-tab="dimensions">
+        <div id="p26-panel-dimensions" class="p26-main-panel<?php echo $migration_selected ? '' : ' active'; ?>" role="tabpanel" aria-labelledby="p26-tab-dimensions" data-tab="dimensions" <?php echo $migration_selected ? 'hidden' : ''; ?>>
             <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="p26-form-panel">
                 <input type="hidden" name="action" value="p26_save_settings">
                 <?php wp_nonce_field('p26_save', 'p26_nonce'); ?>
@@ -211,13 +204,11 @@ function p26_render_page(): void {
                     </div>
                 </div>
 
-                <?php p26_legacy_mapping_controls(); ?>
                 <p>
                     <button type="submit" class="button button-primary">Save settings</button>
                     <span class="p26-save-hint">Changes apply after saving.</span>
                 </p>
             </form>
-            <?php if (!p26_legacy_plugin() && 'committed' === (p26_legacy_read_journal()['status'] ?? '')) p26_legacy_render_wizard(true); ?>
         </div>
 
         <div id="p26-panel-matrix" class="p26-main-panel" role="tabpanel" aria-labelledby="p26-tab-matrix" data-tab="matrix" hidden>
@@ -242,9 +233,9 @@ function p26_render_page(): void {
                 </div>
             </div>
         </div>
-        <?php if (p26_legacy_plugin()): ?>
-            <div id="p26-panel-migrate" class="p26-main-panel" role="tabpanel" aria-labelledby="p26-tab-migrate" data-tab="migrate" hidden>
-                <?php p26_legacy_render_wizard(); ?>
+        <?php if (p26_legacy_show_wizard()): ?>
+            <div id="p26-panel-migrate" class="p26-main-panel<?php echo $migration_selected ? ' active' : ''; ?>" role="tabpanel" aria-labelledby="p26-tab-migrate" data-tab="migrate" <?php echo $migration_selected ? '' : 'hidden'; ?>>
+                <?php p26_legacy_render_wizard(!p26_legacy_plugin()); ?>
             </div>
         <?php endif; ?>
         <details class="p26-reference">

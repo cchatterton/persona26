@@ -3,7 +3,7 @@ Contributors:
 Tags: personalisation, analytics, audience, profiles, gravity-forms
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 0.7.0
+Stable tag: 0.7.1
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -76,16 +76,16 @@ settings. New sites initialise when the plugin first runs in their context.
 
 = Can I migrate from the original Personas plugin? =
 
-With Personas active, configure destination dimensions and Legacy destination
-mapping in Dimensions, then open Migrate Wizard. Run a simulation, resolve its
+With Personas active, configure destination dimensions in Dimensions, then open
+Migrate Wizard to choose and save Legacy destination mapping. Run a simulation, resolve its
 blockers and review affected records before committing. Take a full site backup
 and test on staging first. Post IDs stay fixed; both legacy metadata layouts
 are merged into Persona26 targets. Original relationship fields are retained.
 Translated relationship fields store IDs, with ACF support; dimension mirror
 fields store titles. Compatibility fields stay current when targets change.
 
-After checking migrated pages, deactivate Personas through WordPress. The third
-tab disappears, but recovery remains in Dimensions. Rollback checks for edits
+After checking migrated pages, deactivate Personas through WordPress. The wizard
+tab remains available while a committed recovery snapshot exists. Rollback checks for edits
 made after commit and refuses to overwrite them. Keep Persona26 active while
 translated relationships are used. Mapped dimension post types cannot be changed
 while migration compatibility is active.
@@ -128,6 +128,11 @@ submitted form values. Their own configuration and privacy documentation govern
 any services those plugins use.
 
 == Changelog ==
+
+= 0.7.1 =
+* Moved mapping, saving and recovery into Migrate Wizard; corrected field layout.
+* Fixed simulation and rollback handling of NULL database metadata.
+* Saved mapping independently and kept migration actions on the wizard tab.
 
 = 0.7.0 =
 * Added conditional Personas migration wizard, external destination mapping, previews, atomic commits and protected rollback.

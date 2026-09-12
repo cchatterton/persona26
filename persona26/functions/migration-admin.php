@@ -9,6 +9,11 @@ function p26_legacy_admin_action(): void {
     $token = sanitize_text_field(wp_unslash($_POST['token'] ?? ''));
     try {
         switch ($operation) {
+            case 'save_mapping':
+                $posted = isset($_POST['p26_legacy_mapping']) ? (array) wp_unslash($_POST['p26_legacy_mapping']) : [];
+                p26_legacy_save_mapping($posted);
+                $message = 'Destination mapping saved. Run a new simulation to review the changes.';
+                break;
             case 'simulate':
                 p26_legacy_simulate();
                 $message = 'Simulation complete. Review the counts, record changes and any blockers below. Site content has not changed.';
@@ -16,7 +21,7 @@ function p26_legacy_admin_action(): void {
             case 'commit':
                 if (empty($_POST['acknowledge'])) throw new RuntimeException('Confirm that you reviewed the simulation and have a site backup.');
                 p26_legacy_commit($token);
-                $message = 'Migration committed. Check the mapped posts, content targets and affected pages, then deactivate the original Personas plugin. Recovery remains available in Dimensions.';
+                $message = 'Migration committed. Check the mapped posts, content targets and affected pages, then deactivate the original Personas plugin. Recovery remains available in Migrate Wizard.';
                 break;
             case 'check_rollback':
                 p26_legacy_rollback($token, true);
@@ -51,13 +56,36 @@ function p26_legacy_notice(): void {
     echo '<div class="notice ' . ($notice['error'] ? 'notice-error' : 'notice-success') . '" role="status"><p>' . esc_html($notice['message']) . '</p></div>';
 }
 
-/** Mapping is deliberately configured outside the wizard, alongside dimensions. */
+/** Keep recovery on the same tab after the source plugin is deactivated. */
+function p26_legacy_show_wizard(): bool {
+    return (bool) p26_legacy_plugin() || 'committed' === (p26_legacy_read_journal()['status'] ?? '');
+}
+
+function p26_legacy_save_mapping(array $posted): void {
+    if (!p26_legacy_plugin()) throw new RuntimeException('Activate Personas before configuring a migration.');
+    $mapping = [];
+    foreach (p26_legacy_sources() as $source => $keys) {
+        $mapping[$source] = is_string($posted[$source] ?? null) ? sanitize_key($posted[$source]) : '';
+    }
+    p26_legacy_transaction(static function () use ($mapping): void {
+        global $wpdb;
+        $journal = p26_legacy_read_journal(true);
+        if ('committed' === ($journal['status'] ?? '')) throw new RuntimeException('Roll back the committed migration before changing its mapping.');
+        p26_legacy_mapping($mapping);
+        p26_legacy_write_option(P26_LEGACY_MAP, $mapping);
+        if ('preview' === ($journal['status'] ?? '')) p26_legacy_sql($wpdb->delete($wpdb->options, ['option_name' => P26_LEGACY_JOURNAL]));
+    });
+    foreach ([P26_LEGACY_MAP, P26_LEGACY_JOURNAL, 'alloptions', 'notoptions'] as $key) wp_cache_delete($key, 'options');
+}
+
+/** Mapping has its own form and cannot overwrite general dimension settings. */
 function p26_legacy_mapping_controls(): void {
     if (!p26_legacy_plugin()) return;
     $map = (array) get_option(P26_LEGACY_MAP, []);
-    echo '<div class="p26-card"><p class="p26-eyebrow">Move from Personas</p><h2>Legacy destination mapping</h2><p class="description">Choose and save your destination dimensions here before opening Migrate Wizard. Register destination post types outside the wizard. Existing post IDs will be retained.</p><div class="p26-checkbox-grid">';
+    p26_legacy_form_start('save_mapping');
+    echo '<h3>Legacy destination mapping</h3><p class="description">Map each original post type to a saved Persona26 dimension. Configure destination post types and dimensions first, then save this mapping before simulating. Existing post IDs will be retained.</p><div class="p26-migration-mapping">';
     foreach (p26_legacy_sources() as $source => $keys) {
-        echo '<label>' . esc_html('__persona' === $source ? 'Original personas (__persona)' : 'Original interests (__interest)') . '<br><select name="p26_legacy_mapping[' . esc_attr($source) . ']">';
+        echo '<label class="p26-migration-field"><span>' . esc_html('__persona' === $source ? 'Original personas (__persona)' : 'Original interests (__interest)') . '</span><select required name="p26_legacy_mapping[' . esc_attr($source) . ']">';
         echo '<option value="">Choose a saved dimension</option>';
         foreach (p26_dimensions() as $dimension) {
             if (isset(p26_legacy_sources()[$dimension['post_type']])) continue;
@@ -65,7 +93,7 @@ function p26_legacy_mapping_controls(): void {
         }
         echo '</select></label>';
     }
-    echo '</div></div>';
+    echo '</div><p><button type="submit" class="button">Save mapping</button></p></form>';
 }
 
 function p26_legacy_render_wizard(bool $recovery = false): void {
@@ -81,8 +109,9 @@ function p26_legacy_render_wizard(bool $recovery = false): void {
         p26_legacy_form_start('rollback', $journal['token']);
         echo '<p><label><input type="checkbox" name="acknowledge" value="1" required> Restore the original post types, metadata and references from this migration snapshot.</label></p><button class="button" type="submit">Roll back migration</button></form>';
     } elseif (!$recovery) {
-        echo '<ol><li><strong>Map:</strong> save destination dimensions and content profiling scope in Dimensions.</li><li><strong>Simulate:</strong> review changes without changing site content.</li><li><strong>Commit:</strong> apply the reviewed plan and retain a recovery snapshot.</li></ol>';
+        echo '<ol><li><strong>Map:</strong> choose the destination for each original post type below.</li><li><strong>Simulate:</strong> review changes without changing site content.</li><li><strong>Commit:</strong> apply the reviewed plan and retain a recovery snapshot.</li></ol>';
         if ('rolled_back' === $status) echo '<p>The previous migration was rolled back. You can run a new simulation.</p>';
+        p26_legacy_mapping_controls();
         p26_legacy_form_start('simulate');
         echo '<button class="button button-primary" type="submit">' . ('preview' === $status ? 'Run simulation again' : 'Run simulation') . '</button></form>';
     }

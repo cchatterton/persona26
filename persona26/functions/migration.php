@@ -23,8 +23,8 @@ function p26_legacy_sources(): array {
     return ['__persona' => ['target_personas', '__persona'], '__interest' => ['target_interests', '__interest']];
 }
 
-function p26_legacy_mapping(): array {
-    $saved = (array) get_option(P26_LEGACY_MAP, []);
+function p26_legacy_mapping(?array $saved = null): array {
+    $saved ??= (array) get_option(P26_LEGACY_MAP, []);
     $dimensions = array_column(p26_dimensions(), null, 'key');
     foreach ($dimensions as $dimension) {
         if (isset(p26_legacy_sources()[$dimension['post_type']])) throw new RuntimeException('Remove the original post types from Persona26 dimensions before migration.');
@@ -34,7 +34,7 @@ function p26_legacy_mapping(): array {
     foreach (p26_legacy_sources() as $source => $keys) {
         $dimension = $dimensions[$saved[$source] ?? ''] ?? null;
         if (!$dimension || in_array($dimension['post_type'], array_keys(p26_legacy_sources()), true)) {
-            throw new RuntimeException('Save two destination mappings in Dimensions before simulating.');
+            throw new RuntimeException('Save two destination mappings in Migrate Wizard before simulating.');
         }
         $map[$source] = $dimension + ['alias' => 'p26_legacy_' . $dimension['key'] . '_ids', 'field' => 'field_p26_legacy_' . $dimension['key']];
     }
@@ -45,7 +45,8 @@ function p26_legacy_mapping(): array {
 }
 
 /** Never instantiate objects from database values. */
-function p26_legacy_decode(string $value) {
+function p26_legacy_decode(?string $value) {
+    if (null === $value) return null;
     if (!is_serialized($value)) return $value;
     $decoded = @unserialize($value, ['allowed_classes' => false]);
     if (false === $decoded && 'b:0;' !== $value) throw new RuntimeException('Invalid serialized data.');
@@ -58,8 +59,8 @@ function p26_legacy_decode(string $value) {
     return $decoded;
 }
 
-function p26_legacy_has_reference(string $value): bool {
-    return (bool) preg_match('/__persona|__interest|target_personas|target_interests|field_personas|field_interests/', $value);
+function p26_legacy_has_reference(?string $value): bool {
+    return null !== $value && (bool) preg_match('/__persona|__interest|target_personas|target_interests|field_personas|field_interests/', $value);
 }
 
 /** Context separates a CPT slug from the identically named relationship field. */
