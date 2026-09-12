@@ -9,23 +9,32 @@
     });
 
     function bindTabs(tabSelector, panelSelector, dataKey) {
-        document.querySelectorAll(tabSelector).forEach(function(tab) {
-            tab.addEventListener('click', function(event) {
-                event.preventDefault();
-
-                document.querySelectorAll(tabSelector).forEach(function(item) {
-                    item.classList.remove('nav-tab-active');
-                });
-
-                document.querySelectorAll(panelSelector).forEach(function(panel) {
-                    panel.classList.remove('active');
-                });
-
-                tab.classList.add('nav-tab-active');
-
-                var panel = document.querySelector(panelSelector + '[data-' + dataKey + '="' + tab.dataset[dataKey] + '"]');
-                if (panel) {
-                    panel.classList.add('active');
+        var tabs = Array.from(document.querySelectorAll(tabSelector));
+        function selectTab(tab) {
+            tabs.forEach(function(item) {
+                var selected = item === tab;
+                item.classList.toggle('nav-tab-active', selected);
+                item.setAttribute('aria-selected', String(selected));
+                item.tabIndex = selected ? 0 : -1;
+            });
+            document.querySelectorAll(panelSelector).forEach(function(panel) {
+                var selected = panel.dataset[dataKey] === tab.dataset[dataKey];
+                panel.classList.toggle('active', selected);
+                panel.hidden = !selected;
+            });
+        }
+        tabs.forEach(function(tab, index) {
+            tab.addEventListener('click', function() { selectTab(tab); });
+            tab.addEventListener('keydown', function(event) {
+                var target;
+                if (event.key === 'ArrowRight') target = (index + 1) % tabs.length;
+                if (event.key === 'ArrowLeft') target = (index + tabs.length - 1) % tabs.length;
+                if (event.key === 'Home') target = 0;
+                if (event.key === 'End') target = tabs.length - 1;
+                if (target !== undefined) {
+                    event.preventDefault();
+                    selectTab(tabs[target]);
+                    tabs[target].focus();
                 }
             });
         });
@@ -58,11 +67,12 @@
             }
 
             if (lastCell) {
-                lastCell.innerHTML = '<button type="button" class="button link-button p26-remove" title="Remove">Remove</button>';
+                lastCell.innerHTML = '<button type="button" class="button p26-remove">Clear</button>';
             }
 
             tbody.appendChild(clone);
             renumberRows(tbody);
+            if (select) select.focus();
         });
 
         tbody.addEventListener('click', function(event) {
@@ -74,8 +84,9 @@
 
             var row = event.target.closest('tr');
             if (row) {
-                row.remove();
-                renumberRows(tbody);
+                row.querySelector('.p26-post-type').value = '';
+                row.querySelector('.p26-context').value = '';
+                row.querySelector('.p26-post-type').focus();
             }
         });
     }
@@ -87,10 +98,12 @@
 
             if (select) {
                 select.name = 'p26_tracked[' + index + '][post_type]';
+                select.setAttribute('aria-label', 'Dimension ' + (index + 1) + ' post type');
             }
 
             if (input) {
                 input.name = 'p26_tracked[' + index + '][context]';
+                input.setAttribute('aria-label', 'Dimension ' + (index + 1) + ' context');
             }
         });
     }
@@ -145,6 +158,7 @@
                     option.hidden = false;
                 }
                 pill.remove();
+                toggle.focus();
             }
 
             function bindRemoveButton(button) {

@@ -24,10 +24,7 @@ class P26_Profile {
     const FOREVER = 630720000; // 20 years
 
     public static function boot(): void {
-        add_action('wp_head', [__CLASS__, 'output_clear'], 1);
-        add_action('wp_head', [__CLASS__, 'output_page_data'], 2);
-        add_action('wp_head', [__CLASS__, 'output_profile_script'], 3);
-        add_action('wp_footer', [__CLASS__, 'output_debug'], 999);
+        add_action('wp_enqueue_scripts', [__CLASS__, 'enqueue_assets']);
         add_filter('body_class', [__CLASS__, 'add_persona_body_classes'], 20, 1);
     }
 
@@ -151,190 +148,26 @@ class P26_Profile {
         return $empty;
     }
 
-    protected static function should_run_update(): bool {
+    public static function enqueue_assets(): void {
+        if (is_admin()) return;
+        $action = isset($_GET['persona']) && is_string($_GET['persona']) ? sanitize_key(wp_unslash($_GET['persona'])) : '';
         $data = self::page_data();
-        return !empty($data['order']);
-    }
-
-    public static function output_page_data(): void {
-        if (!self::should_run_update()) return;
-
-        $data = self::page_data();
-
-        echo '<script>window.p26PageProfileData=' . wp_json_encode($data) . ';</script>' . "\n";
-    }
-
-    public static function output_profile_script(): void {
-        if (!self::should_run_update()) return;
-
-        $persona_action = isset($_GET['persona']) ? sanitize_key(wp_unslash($_GET['persona'])) : '';
-
-        if ('clear' === $persona_action || 'get' === $persona_action) {
-            return;
+        $data['order'] = array_column(self::dimensions(), 'key');
+        wp_enqueue_script('p26-profile', P26_PLUGIN_URL . 'scripts/persona26-profile.js', array('p26-identity'), P26_VERSION, false);
+        wp_add_inline_script('p26-profile', 'window.p26PageProfileData=' . wp_json_encode($data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';window.p26ProfileAction=' . wp_json_encode($action) . ';', 'before');
+        if (in_array($action, array('show', 'get', 'clear'), true)) {
+            wp_enqueue_style('p26-profile-debug', P26_PLUGIN_URL . 'styles/persona26-front.css', array(), P26_VERSION);
         }
-
-        $profile_key = esc_js(self::storage_key('profile'));
-        $max_age     = (int) self::FOREVER;
-
-        echo "<script>(function(){try{
-            var PROFILE_KEY = '{$profile_key}';
-            var MAXAGE = {$max_age};
-            var PAGE = window.p26PageProfileData || {order:[],labels:{},dimensions:{}};
-
-            function getLS(k){
-                try { return localStorage.getItem(k) || ''; } catch(e){ return ''; }
-            }
-
-            function setLS(k,v){
-                try { localStorage.setItem(k,v); } catch(e){}
-            }
-
-            function getCookie(n){
-                var m = document.cookie.match('(?:^|; )' + n.replace(/([.$?*|{}()\\[\\]\\\\\\/\\+^])/g, '\\\\$1') + '=([^;]*)');
-                return m ? decodeURIComponent(m[1]) : '';
-            }
-
-            function setCookie(n,v){
-                try {
-                    document.cookie = n + '=' + encodeURIComponent(v) + '; Path=/; Max-Age=' + MAXAGE;
-                } catch(e){}
-            }
-
-            function parseJSON(raw, fallback){
-                if (!raw) return fallback;
-                try {
-                    var v = JSON.parse(raw);
-                    return (v && typeof v === 'object') ? v : fallback;
-                } catch(e){
-                    return fallback;
-                }
-            }
-
-            function isObj(v){
-                return !!v && typeof v === 'object' && !Array.isArray(v);
-            }
-
-            function arr(v){
-                return Array.isArray(v) ? v.filter(Boolean) : [];
-            }
-
-            function ensureProfile(v){
-                if (!isObj(v)) v = {};
-                if (typeof v.persona !== 'string') v.persona = '';
-                if (!isObj(v.counters)) v.counters = {};
-                return v;
-            }
-
-            function bump(map, values){
-                map = isObj(map) ? map : {};
-                values.forEach(function(value){
-                    value = String(value).trim();
-                    if (!value) return;
-                    map[value] = (parseInt(map[value], 10) || 0) + 1;
-                });
-                return map;
-            }
-
-            function topAll(map){
-                map = isObj(map) ? map : {};
-                var winners = [];
-                var max = -1;
-
-                for (var key in map) {
-                    if (!Object.prototype.hasOwnProperty.call(map, key)) continue;
-                    var val = parseInt(map[key], 10) || 0;
-
-                    if (val > max) {
-                        max = val;
-                        winners = [key];
-                    } else if (val === max) {
-                        winners.push(key);
-                    }
-                }
-
-                return winners;
-            }
-
-            function rebuildPersona(profile, order){
-                var parts = [];
-
-                arr(order).forEach(function(dimKey){
-                    var winners = topAll(profile.counters[dimKey]);
-                    if (winners.length) {
-                        parts.push(winners.join(' | '));
-                    }
-                });
-
-                profile.persona = parts.join(', ');
-                return profile;
-            }
-
-            function personaValues(profile){
-                if (!profile || typeof profile.persona !== 'string' || !profile.persona) return [];
-                return profile.persona
-                    .split(/\\s*,\\s*|\\s*\\|\\s*/)
-                    .map(function(v){ return String(v).trim(); })
-                    .filter(Boolean);
-            }
-
-            function applyBodyClasses(oldProfile, newProfile){
-                if (!document.body) return;
-
-                personaValues(oldProfile).forEach(function(value){
-                    document.body.classList.remove(value);
-                });
-
-                personaValues(newProfile).forEach(function(value){
-                    document.body.classList.add(value);
-                });
-            }
-
-            var raw = getLS(PROFILE_KEY) || getCookie(PROFILE_KEY);
-            var oldProfile = ensureProfile(parseJSON(raw, {persona:'', counters:{}}));
-
-            // clone-ish base so oldProfile remains available for class cleanup
-            var profile = ensureProfile(parseJSON(JSON.stringify(oldProfile), {persona:'', counters:{}}));
-
-            var order = arr(PAGE.order);
-            var dimensions = isObj(PAGE.dimensions) ? PAGE.dimensions : {};
-
-            order.forEach(function(dimKey){
-                var values = arr(dimensions[dimKey]);
-                if (!values.length) return;
-                profile.counters[dimKey] = bump(profile.counters[dimKey], values);
-            });
-
-            profile = rebuildPersona(profile, order);
-
-            var encoded = JSON.stringify(profile);
-            setLS(PROFILE_KEY, encoded);
-            setCookie(PROFILE_KEY, encoded);
-
-            window.p26 = window.p26 || {};
-            window.p26.profile = profile;
-            window.p26.page = PAGE;
-
-            function runApplyBodyClasses(){
-                applyBodyClasses(oldProfile, profile);
-            }
-            
-            if (document.body) {
-                runApplyBodyClasses();
-            } else {
-                document.addEventListener('DOMContentLoaded', runApplyBodyClasses, { once: true });
-            }
-
-        }catch(e){}})();</script>" . "\n";
     }
 
     public static function add_persona_body_classes(array $classes): array {
         if (is_admin()) return $classes;
 
         $cookie_key = self::storage_key('profile');
-        $raw = isset($_COOKIE[$cookie_key]) ? sanitize_text_field(wp_unslash($_COOKIE[$cookie_key])) : '';
+        $raw = isset($_COOKIE[$cookie_key]) && is_string($_COOKIE[$cookie_key]) ? sanitize_text_field(wp_unslash($_COOKIE[$cookie_key])) : '';
         if (!$raw || !is_string($raw)) return $classes;
 
-        $decoded = json_decode(wp_unslash($raw), true);
+        $decoded = json_decode($raw, true);
         if (!is_array($decoded) || empty($decoded['persona']) || !is_string($decoded['persona'])) {
             return $classes;
         }
@@ -355,100 +188,6 @@ class P26_Profile {
         return array_values(array_unique($classes));
     }
 
-    public static function output_debug(): void {
-        if (is_admin()) return;
-
-        $persona_action = isset($_GET['persona']) ? sanitize_key(wp_unslash($_GET['persona'])) : '';
-        if ('show' !== $persona_action && 'get' !== $persona_action) return;
-
-        $profile_key = esc_js(self::storage_key('profile'));
-
-        echo '<script>(function(){
-            try{
-                var raw = localStorage.getItem("'.$profile_key.'") || "";
-                var page = window.p26PageProfileData || null;
-                var prettyProfile = raw;
-                var prettyPage = page
-                    ? JSON.stringify(page, null, 2)
-                    : "No current page targets found.";
-
-                try {
-                    prettyProfile = raw
-                        ? JSON.stringify(JSON.parse(raw), null, 2)
-                        : "No '.$profile_key.' found in localStorage.";
-                } catch(e) {
-                    prettyProfile = raw || "No '.$profile_key.' found in localStorage.";
-                }
-
-                var wrap = document.createElement("div");
-                wrap.style.cssText = "position:relative;z-index:999999;margin:24px auto;max-width:1200px;padding:20px;border:2px solid #111;background:#fff;color:#111;";
-
-                var h1 = document.createElement("div");
-                h1.style.cssText = "font:600 16px/1.3 sans-serif;margin:0 0 12px;";
-                h1.textContent = "Persona26 Profile";
-
-                var h2 = document.createElement("div");
-                h2.style.cssText = "font:600 14px/1.3 sans-serif;margin:18px 0 8px;";
-                h2.textContent = "Current Page Targets";
-
-                var pre1 = document.createElement("pre");
-                pre1.style.cssText = "margin:0;white-space:pre-wrap;word-break:break-word;font:14px/1.5 monospace;";
-                pre1.textContent = prettyPage;
-
-                var h3 = document.createElement("div");
-                h3.style.cssText = "font:600 14px/1.3 sans-serif;margin:18px 0 8px;";
-                h3.textContent = "Local Profile";
-
-                var pre2 = document.createElement("pre");
-                pre2.style.cssText = "margin:0;white-space:pre-wrap;word-break:break-word;font:14px/1.5 monospace;";
-                pre2.textContent = prettyProfile;
-
-                wrap.appendChild(h1);
-                wrap.appendChild(h2);
-                wrap.appendChild(pre1);
-                wrap.appendChild(h3);
-                wrap.appendChild(pre2);
-
-                document.body.appendChild(wrap);
-            }catch(e){}
-        })();</script>' . "\n";
-    }
-
-    public static function output_clear(): void {
-        if (is_admin()) return;
-        $persona_action = isset($_GET['persona']) ? sanitize_key(wp_unslash($_GET['persona'])) : '';
-        if ('clear' !== $persona_action) return;
-
-        $profile_key = esc_js(self::storage_key('profile'));
-
-        echo '<script>(function(){
-            try{
-                var KEY = "'.$profile_key.'";
-
-                try { localStorage.removeItem(KEY); } catch(e){}
-
-                try {
-                    document.cookie = KEY + "=; Path=/; Max-Age=0";
-                    document.cookie = KEY + "=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT";
-                } catch(e){}
-
-                if (window.p26 && window.p26.profile) {
-                    delete window.p26.profile;
-                }
-
-                var msg = document.createElement("div");
-                msg.style.cssText = "position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:999999;padding:10px 16px;background:#111;color:#fff;font:14px sans-serif;";
-                msg.textContent = "Persona cleared. Reloading...";
-                document.body.appendChild(msg);
-
-                var url = window.location.pathname + window.location.hash;
-                setTimeout(function(){
-                    window.location.replace(url);
-                }, 300);
-
-            }catch(e){}
-        })();</script>' . "\n";
-    }
 }
 
 P26_Profile::boot();

@@ -82,9 +82,11 @@ function p26_output_personalize_css(): void {
     $css = get_option(P26_PERSONALIZE_CSS_OPTION, '');
     if (!$css || !is_string($css)) return;
 
-    echo "<style id=\"p26-personalize-css\">\n" . $css . "\n</style>\n";
+    wp_register_style('p26-personalize', false, array(), P26_VERSION);
+    wp_enqueue_style('p26-personalize');
+    wp_add_inline_style('p26-personalize', wp_strip_all_tags($css));
 }
-add_action('wp_head', 'p26_output_personalize_css', 20);
+add_action('wp_enqueue_scripts', 'p26_output_personalize_css', 20);
 
 function p26_personalize_should_rebuild_for_post(int $post_id): bool {
     $post_type = get_post_type($post_id);
@@ -102,11 +104,11 @@ function p26_maybe_rebuild_personalize_css_for_saved_post($post_id): void {
 }
 add_action('save_post', 'p26_maybe_rebuild_personalize_css_for_saved_post', 20);
 
-function p26_maybe_rebuild_personalize_css_for_deleted_post($post_id): void {
-    if (!p26_personalize_should_rebuild_for_post((int) $post_id)) return;
+function p26_maybe_rebuild_personalize_css_for_deleted_post($post_id, $post): void {
+    if (!$post instanceof WP_Post || !in_array($post->post_type, p26_personalize_dimension_post_types(), true)) return;
     p26_rebuild_personalize_css();
 }
-add_action('deleted_post', 'p26_maybe_rebuild_personalize_css_for_deleted_post', 20);
+add_action('after_delete_post', 'p26_maybe_rebuild_personalize_css_for_deleted_post', 20, 2);
 
 function p26_maybe_rebuild_personalize_css_for_trashed_post($post_id): void {
     if (!p26_personalize_should_rebuild_for_post((int) $post_id)) return;

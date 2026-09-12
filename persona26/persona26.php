@@ -1,14 +1,15 @@
 <?php
 /**
- * Plugin Name: Persona26
- * Plugin URI: https://github.com/cchatterton/persona26/releases/latest
- * Description: Extends IA with cookie and tracks related sessions
- * Version: 0.6
+ * Plugin Name: TN Persona26
+ * Description: Visitor profiles, engagement dimensions and personalisation with Independent Analytics and Gravity Forms.
+ * Version: 0.6.1
  * Requires at least: 6.0
  * Requires PHP: 8.1
  * Update URI: https://github.com/cchatterton/persona26
  * Author: Techn
  * Author URI: https://techn.com.au
+ * License: GPL v2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: persona26
  */
 
@@ -16,7 +17,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('P26_VERSION', '0.6');
+define('P26_VERSION', '0.6.1');
 define('P26_PLUGIN_FILE', __FILE__);
 define('P26_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('P26_PLUGIN_URL', plugin_dir_url(__FILE__));

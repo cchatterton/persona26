@@ -8,7 +8,8 @@ if (!defined('ABSPATH')) exit;
 
 function p26_cookie_id(): string {
     // From your cookie/localStorage sync: key is p26_id
-    return isset($_COOKIE['p26_id']) ? sanitize_text_field(wp_unslash($_COOKIE['p26_id'])) : '';
+    $id = isset($_COOKIE['p26_id']) && is_string($_COOKIE['p26_id']) ? wp_unslash($_COOKIE['p26_id']) : '';
+    return preg_match('/^[a-f0-9]{16,64}$/D', $id) ? $id : '';
 }
 
 function p26_get_ia_visitor_id(): int {
@@ -25,7 +26,8 @@ function p26_get_ia_visitor_id(): int {
 }
 
 function p26_insert_map(string $p26_id, int $ia_visitor_id): void {
-    if (!$p26_id || $ia_visitor_id <= 0) return;
+    if (!preg_match('/^[a-f0-9]{16,64}$/D', $p26_id) || $ia_visitor_id <= 0) return;
+    if (P26_DB_VERSION !== get_option('p26_db_version')) return;
 
     global $wpdb;
     $table = p26_table_name(); // init.php
