@@ -1,3 +1,22 @@
+# Persona26 0.7.3 actionable migration reports
+
+Corrected false profiling blockers for empty selections, revisions and orphaned
+metadata. Required content types are grouped with a separate, explicit scope action
+in the wizard. Historical metadata stays intact. Target diagnostics now name missing
+or mismatched IDs and accept IDs already in the configured destination type.
+
+Added source-verified Duplicate Post/Relevanssi option adapters; WordPress rewrite
+rules are regenerated rather than rewritten as arbitrary serialized configuration.
+Source-plugin deactivation triggers a per-site route refresh on the next request.
+Remaining unknown references stay blocking and expose bounded diagnostic excerpts.
+The actual Fusion24 and Wiki Links source and reported post content are not available;
+this release does not claim those custom consumers have been converted.
+
+Migration regression tests passed, including retained revision/orphan metadata,
+grouped scope repair, already-mapped IDs, option conversion and route refresh.
+
+---
+
 # Persona26 0.7.2 large recovery snapshots
 
 Replaced the fixed 4 MiB recovery limit with compressed, non-autoloaded database

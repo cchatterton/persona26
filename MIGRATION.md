@@ -107,3 +107,30 @@ release does not silently run a partial/batched migration on large sites.
 
 No production site was modified. A real-site staging run remains necessary for the
 site's block plugin, theme, external caches and any historical visitor-profile logic.
+
+## Site report handling (0.7.3)
+
+Missing scope is grouped by real tagged content type. The explicit **Include detected
+content types** action unions those types into profiling scope, keeps dimensions
+unchanged and invalidates the old preview. Empty relationships do not require scope.
+Revision relationship metadata and orphaned metadata are retained untouched; they are
+counted in the report rather than being treated as live content. Revision block content
+still undergoes reference checks. Compatibility refresh does not add metadata to
+revisions or nonexistent posts.
+
+Targets already in the mapped destination CPT are accepted without changing IDs.
+Missing/wrong-type IDs still block commit and now identify the actual ID and expected
+type. The wizard does not silently discard unresolved selections. Unknown stored
+references now include option names and bounded excerpts; active source findings also
+include excerpts. These are diagnostics, not permission to ignore unknown semantics.
+
+Verified post-type-list adapters cover [Yoast Duplicate Post's enabled types](https://github.com/Yoast/duplicate-post/blob/trunk/common-functions.php)
+and [Relevanssi's indexed types](https://github.com/msaari/relevanssi/blob/master/lib/search.php).
+Other generic `included` or `pattern` settings still need their actual source/schema.
+The WordPress `rewrite_rules` cache is excluded and regenerated. Each migrated site
+also refreshes its routes once the recorded source plugin is no longer active.
+
+Regression tests cover grouped scope repair, preserved dimensions, already-mapped
+IDs, retained historical/orphaned records, both verified option adapters and rewrite
+refresh after deactivation. Custom Fusion24/Wiki Links consumers and the reported
+site-specific post references still require source inspection before conversion.

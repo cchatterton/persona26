@@ -3,7 +3,7 @@ Contributors:
 Tags: personalisation, analytics, audience, profiles, gravity-forms
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 0.7.2
+Stable tag: 0.7.3
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -78,7 +78,9 @@ settings. New sites initialise when the plugin first runs in their context.
 
 With Personas active, configure destination dimensions in Dimensions, then open
 Migrate Wizard to choose and save Legacy destination mapping. Run a simulation, resolve its
-blockers and review affected records before committing. Take a full site backup
+blockers and review affected records before committing. Missing profiling scope
+is grouped by content type; Include detected content types adds those types
+without changing your dimensions, then requires a new simulation. Take a full site backup
 and test on staging first. Post IDs stay fixed; both legacy metadata layouts
 are merged into Persona26 targets. Original relationship fields are retained.
 Translated relationship fields store IDs, with ACF support; dimension mirror
@@ -99,8 +101,10 @@ automatically discarded. Deactivation retains the journal and compatibility data
 The wizard handles posts, supported block JSON, templates, reusable blocks,
 post metadata, structured options, term metadata and comment metadata. Unknown
 reference contexts, invalid targets, destination slug collisions, serialized
-objects and hard-coded consumers in active components block commit. Original
-plugin options, transient caches, ACF health diagnostics and visitor history
+objects and hard-coded consumers in active components block commit. Revision relationship metadata and orphaned metadata are retained without
+requiring profiling. Remaining ID errors show the specific target, and reference
+errors include record names and excerpts. WordPress rewrite rules are regenerated.
+Original plugin options, transient caches, ACF health diagnostics and visitor history
 are retained rather than rewritten. Theme/plugin files, external systems,
 legacy visitor-history files and URL redirects are not converted.
 
@@ -130,6 +134,11 @@ submitted form values. Their own configuration and privacy documentation govern
 any services those plugins use.
 
 == Changelog ==
+
+= 0.7.3 =
+* Grouped profiling scope checks and added a wizard action to include detected types.
+* Retained historical/orphaned metadata and improved target/reference diagnostics.
+* Added verified plugin option adapters and route-cache regeneration.
 
 = 0.7.2 =
 * Replaced the 4 MiB snapshot ceiling with compressed chunked recovery storage.

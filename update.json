@@ -1,4 +1,4 @@
 {
-  "version": "0.7.2",
-  "body": "## 0.7.2 - 2026-09-12\n\n- Removed the fixed 4 MiB migration snapshot ceiling.\n- Store recovery snapshots as compressed, non-autoloaded database chunks with integrity verification.\n- Preserve atomic commit and rollback when a snapshot chunk cannot be written or read.\n- Continue reading existing migration snapshots and check available PHP memory before encoding or restoring larger ones.\n"
+  "version": "0.7.3",
+  "body": "## 0.7.3 - 2026-09-12\n\n- Group missing profiling scope by content type and add an explicit wizard action to include detected types.\n- Retain revision and orphaned relationship metadata without requiring profiling or modifying historical tags.\n- Accept legacy IDs already belonging to their mapped destination post type and identify missing or mismatched IDs precisely.\n- Translate verified Duplicate Post and Relevanssi post-type options, and regenerate WordPress rewrite rules instead of treating their cache as a blocker.\n- Include option names and reference excerpts in remaining blockers; refresh routes after the source plugin stops loading.\n"
 }
