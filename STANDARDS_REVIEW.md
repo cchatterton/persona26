@@ -9,7 +9,9 @@ The user-approved Content Planner screenshot and source styles override the gene
 - axe WCAG 2 A/AA and 2.1 AA scans returned no violations at those widths. PHP lint and exact package/version validation passed.
 - Author Branded styling remains on the standalone settings page; Gravity Forms retains Extension Branded native surfaces. This is a presentation update; the prior integration-test limitations below still apply.
 
-Release: 0.6.2 with persona26.zip, following the established commit/push/tag/release workflow. Native upgrade verification is recorded after publication.
+Released [0.6.2](https://github.com/cchatterton/persona26/releases/tag/v0.6.2) through [PR #4](https://github.com/cchatterton/persona26/pull/4). Tag and source commit: `989aa5175abfebaa3bd85490b91327224d94200f`. The public latest release and expected asset were verified. SHA-256: `53153218f68bc1f68f3c15e357dbc61afb4c86fd0002b07bbbb4b73c4ec82972`.
+
+Native WordPress upgrade from 0.6.1 to 0.6.2 passed. The installed plugin remains active, uses the Persona26 display name, and every installed file matches the published ZIP and committed package. The subsequent manual check reports the installed version is current. No production site was changed.
 
 ---
 
