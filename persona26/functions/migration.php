@@ -284,44 +284,9 @@ function p26_legacy_plan(bool $lock = false): array {
         }
     }
     foreach ($plan['scope_required'] as $type => $count) $plan['blockers'][] = "Content profiling: enable $type for $count tagged content records.";
-    $plan['blockers'] = array_values(array_unique(array_merge($plan['blockers'], p26_legacy_code_references())));
+    $plan['blockers'] = array_values(array_unique($plan['blockers']));
     p26_legacy_snapshot_memory(strlen(serialize($plan)));
     return $plan;
-}
-
-/** Stored references cannot repair hard-coded consumers in another active component. */
-function p26_legacy_code_references(): array {
-    $legacy = p26_legacy_plugin();
-    $roots = [];
-    foreach (array_merge((array) get_option('active_plugins', []), array_keys((array) get_site_option('active_sitewide_plugins', []))) as $plugin) {
-        if ($plugin === ($legacy['file'] ?? '') || $plugin === plugin_basename(P26_PLUGIN_FILE)) continue;
-        $file = WP_PLUGIN_DIR . '/' . $plugin;
-        $roots[] = str_contains($plugin, '/') ? dirname($file) : $file;
-    }
-    $roots[] = get_stylesheet_directory();
-    $roots[] = get_template_directory();
-    if (is_dir(WPMU_PLUGIN_DIR)) $roots[] = WPMU_PLUGIN_DIR;
-    $blockers = [];
-    $files = 0;
-    $bytes = 0;
-    foreach (array_unique($roots) as $root) {
-        if (!file_exists($root)) continue;
-        try {
-            $iterator = is_file($root) ? [new SplFileInfo($root)] : new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS));
-            foreach ($iterator as $file) {
-                if (!$file->isFile() || $file->isLink() || !in_array(strtolower($file->getExtension()), ['php', 'js', 'json'], true)) continue;
-                $files++;
-                $bytes += $file->getSize();
-                if ($files > 15000 || $bytes > 100 * 1024 * 1024) return array_merge($blockers, ['Active-code inspection exceeded its safe limit; a reviewed code audit is required.']);
-                $content = file_get_contents($file->getPathname());
-                if (false === $content) { $blockers[] = 'Cannot inspect an active component: ' . basename($root); continue; }
-                if (p26_legacy_has_reference($content) || preg_match('/\bget_(?:persona|personas|interest|interests|cookie_history)\s*\(/', $content)) {
-                    $blockers[] = 'Hard-coded legacy consumer in ' . str_replace(trailingslashit(WP_CONTENT_DIR), '', $file->getPathname()) . '. Update this component before migration. Reference: ' . p26_legacy_reference_excerpt($content);
-                }
-            }
-        } catch (UnexpectedValueException $error) { $blockers[] = 'Cannot inspect an active component: ' . basename($root); }
-    }
-    return $blockers;
 }
 
 function p26_legacy_set_meta(array &$rows, int $post_id, string $key, $value): void {

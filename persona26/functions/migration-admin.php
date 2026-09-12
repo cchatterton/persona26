@@ -133,7 +133,7 @@ function p26_legacy_render_wizard(bool $recovery = false): void {
         p26_legacy_form_start('rollback', $journal['token']);
         echo '<p><label><input type="checkbox" name="acknowledge" value="1" required> Restore the original post types, metadata and references from this migration snapshot.</label></p><button class="button" type="submit">Roll back migration</button></form>';
     } elseif (!$recovery) {
-        echo '<ol><li><strong>Map:</strong> choose the destination for each original post type below.</li><li><strong>Simulate:</strong> review changes without changing site content.</li><li><strong>Commit:</strong> apply the reviewed plan and retain a recovery snapshot.</li></ol>';
+        echo '<ol><li><strong>Map:</strong> choose the destination for each original post type below.</li><li><strong>Simulate:</strong> review changes to post types, metadata and saved references. Original records keep their IDs.</li><li><strong>Commit:</strong> apply the reviewed plan and retain a recovery snapshot.</li></ol>';
         if ('rolled_back' === $status) echo '<p>The previous migration was rolled back. You can run a new simulation.</p>';
         p26_legacy_mapping_controls();
         p26_legacy_form_start('simulate');
@@ -170,5 +170,5 @@ function p26_legacy_render_wizard(bool $recovery = false): void {
             echo '<p><label><input type="checkbox" name="acknowledge" value="1" required> I have reviewed the simulation, have a full site backup, and am ready to apply these changes.</label></p><button class="button button-primary" type="submit">Commit migration</button></form>';
         }
     }
-    echo '<p class="description">Coverage: this site’s posts, block attributes, templates, reusable blocks, post metadata, structured options, term metadata and comment metadata. Unrecognised references block commit. Original relationship fields and visitor history are retained. Theme/plugin PHP, external systems, old visitor-history files, URL redirects and caches outside WordPress are not converted; test those integrations on staging before switching off Personas.</p></div>';
+    echo '<p class="description">Coverage: this site’s posts, block attributes, templates, reusable blocks, post metadata, structured options, term metadata and comment metadata. Unrecognised references block commit. Original relationship fields and visitor history are retained. This wizard migrates saved site configuration. Check the affected pages before switching off Personas.</p></div>';
 }

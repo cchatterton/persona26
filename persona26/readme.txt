@@ -101,7 +101,7 @@ automatically discarded. Deactivation retains the journal and compatibility data
 The wizard handles posts, supported block JSON, templates, reusable blocks,
 post metadata, structured options, term metadata and comment metadata. Unknown
 reference contexts, invalid targets, destination slug collisions, serialized
-objects and hard-coded consumers in active components block commit. Revision relationship metadata and orphaned metadata are retained without
+objects block commit. The wizard migrates saved configuration and does not scan source files. Revision relationship metadata and orphaned metadata are retained without
 requiring profiling. Remaining ID errors show the specific target, and reference
 errors include record names and excerpts. WordPress rewrite rules are regenerated.
 Original plugin options, transient caches, ACF health diagnostics and visitor history
@@ -110,8 +110,7 @@ legacy visitor-history files and URL redirects are not converted.
 
 Interactive migrations require InnoDB. Each scanned result set must be below
 10,000 rows. Snapshots use database chunks instead of a fixed 4 MiB ceiling;
-available PHP memory still limits the total working set. Active-code inspection is bounded
-at 15,000 PHP/JS/JSON files and 100 MiB. Larger sites stop without changing
+available PHP memory still limits the total working set. Larger sites stop without changing
 content and need a reviewed batch migration. The snapshot is a migration undo
 record, not a replacement for a complete site backup.
 
@@ -136,6 +135,7 @@ any services those plugins use.
 == Changelog ==
 
 = 0.7.3 =
+* Removed source-code scanning from the saved-configuration migration wizard.
 * Grouped profiling scope checks and added a wizard action to include detected types.
 * Retained historical/orphaned metadata and improved target/reference diagnostics.
 * Added verified plugin option adapters and route-cache regeneration.

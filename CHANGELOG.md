@@ -1,5 +1,6 @@
 ## 0.7.3 - 2026-09-12
 
+- Focus migration on saved site configuration; remove source-file scanning and its commit blockers.
 - Group missing profiling scope by content type and add an explicit wizard action to include detected types.
 - Retain revision and orphaned relationship metadata without requiring profiling or modifying historical tags.
 - Accept legacy IDs already belonging to their mapped destination post type and identify missing or mismatched IDs precisely.

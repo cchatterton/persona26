@@ -9,11 +9,13 @@ Added source-verified Duplicate Post/Relevanssi option adapters; WordPress rewri
 rules are regenerated rather than rewritten as arbitrary serialized configuration.
 Source-plugin deactivation triggers a per-site route refresh on the next request.
 Remaining unknown references stay blocking and expose bounded diagnostic excerpts.
-The actual Fusion24 and Wiki Links source and reported post content are not available;
-this release does not claim those custom consumers have been converted.
+Removed source-code scanning from this saved-configuration migration. Source-file
+text no longer blocks commit. Unsupported stored references still need their saved
+values examined; this release does not claim all reported database formats are converted.
 
 Migration regression tests passed, including retained revision/orphan metadata,
 grouped scope repair, already-mapped IDs, option conversion and route refresh.
+A component-source fixture confirms commit/rollback preserve IDs and leave files unchanged.
 
 ---
 

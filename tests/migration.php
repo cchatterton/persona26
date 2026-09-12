@@ -134,11 +134,16 @@ try {
     $blocked = p26_legacy_simulate();
     p26_mtest((bool)array_filter($blocked['plan']['blockers'], static fn($b)=>str_contains($b,'999999999 no longer exists')), 'Missing relationship IDs block migration');
     delete_metadata_by_mid('post', $bad_meta);
-    $unsafe_file = WPMU_PLUGIN_DIR . '/p26-migration-code-fixture.php';
-    file_put_contents($unsafe_file, '<?php // query __persona');
-    $blocked = p26_legacy_simulate();
-    unlink($unsafe_file);
-    p26_mtest((bool)array_filter($blocked['plan']['blockers'], static fn($b)=>str_contains($b,'Hard-coded')), 'Hard-coded active component references block migration');
+    $source_fixture = WPMU_PLUGIN_DIR . '/p26-migration-code-fixture.php';
+    file_put_contents($source_fixture, '<?php // query __persona');
+    try {
+        $configured = p26_legacy_simulate();
+        p26_mtest(!$configured['plan']['blockers'], 'Source text does not block migration of saved site configuration');
+        p26_legacy_commit($configured['token']);
+        p26_mtest(get_post_type($a) === 'migration_audience' && get_post_type($i) === 'migration_interest', 'Original records move to destinations with IDs intact');
+        p26_mtest(file_get_contents($source_fixture) === '<?php // query __persona', 'Migration leaves component source files unchanged');
+        p26_legacy_rollback($configured['token']);
+    } finally { unlink($source_fixture); }
     $settings_before_scope = p26_settings();
     update_option(P26_SETTINGS_OPTION, array_merge($settings_before_scope, ['content_post_types'=>[]]));
     $scope = p26_legacy_simulate();
