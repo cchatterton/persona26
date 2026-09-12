@@ -38,7 +38,17 @@ Existing plugin slug, text domain, option names, identity/profile storage keys, 
 
 ## Release verification
 
-Publish `v0.6.1` with the generated `persona26.zip`. Verify the main-branch manifest, release tag and asset checksum, then run the native WordPress upgrade from 0.6 to 0.6.1 on the disposable test site. Record the outcome in the delivery report; never infer installation success solely from package validation.
+Published [TN Persona26 0.6.1](https://github.com/cchatterton/persona26/releases/tag/v0.6.1) after merging [PR #3](https://github.com/cchatterton/persona26/pull/3).
+
+- Release tag points to source merge commit `279fefcb3ecacf3f863d11bce92194a08a2610fd`.
+- Public `update.json`, latest-release API, release tag and expected `persona26.zip` asset were verified.
+- Downloaded asset matches the committed ZIP; SHA-256: `4ba5f7bfeb0b7b59f8e5caba6160646a0348af53bcf1a0819794b951d605477d`.
+- WordPress offered the update from the original 0.6 package. Clicking the native **update now** action successfully installed 0.6.1. Every installed file matched the published archive.
+- Both test visitor mapping rows survived the upgrade. The plugin remained active, displayed TN Persona26, and exposed **GitHub** and **Check for updates** without **Visit plugin site**.
+- The new manual check returned a native up-to-date notice. A fresh live lookup retrieved version, release notes and the trusted download URL with exactly one manifest request and no API fallback.
+- Clearing a middle dimension retained later indexes after saving; an invalid settings nonce returned HTTP 403.
+
+No production WordPress site was changed.
 
 ## Limitations and deployment notes
 
