@@ -1,3 +1,16 @@
+# Persona26 0.7.4 saved configuration migration
+
+Added report-shaped JSON, serialized ACF, AIOSEO, cache post-type map and Content
+Planner adapters. Missing IDs are explicitly skipped and reported as requested.
+Preserved valid selections, taxonomy identifiers, source metadata and rollback bytes.
+Content Planner option renames protect existing destinations and clear both caches.
+Reference conversion is isolated in migration-references.php for maintainability.
+
+Migration and format integration suites cover preview, commit, exact rollback,
+collisions, large snapshots and invalid data. Production site data remains untouched.
+
+---
+
 # Persona26 0.7.3 actionable migration reports
 
 Corrected false profiling blockers for empty selections, revisions and orphaned

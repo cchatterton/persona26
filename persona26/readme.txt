@@ -3,7 +3,7 @@ Contributors:
 Tags: personalisation, analytics, audience, profiles, gravity-forms
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 0.7.3
+Stable tag: 0.7.4
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -100,10 +100,11 @@ automatically discarded. Deactivation retains the journal and compatibility data
 
 The wizard handles posts, supported block JSON, templates, reusable blocks,
 post metadata, structured options, term metadata and comment metadata. Unknown
-reference contexts, invalid targets, destination slug collisions, serialized
+reference contexts, mismatched targets, destination slug collisions, serialized
 objects block commit. The wizard migrates saved configuration and does not scan source files. Revision relationship metadata and orphaned metadata are retained without
 requiring profiling. Remaining ID errors show the specific target, and reference
-errors include record names and excerpts. WordPress rewrite rules are regenerated.
+errors include record names and excerpts. Deleted target IDs are skipped and counted;
+original relationship fields remain intact. WordPress rewrite rules are regenerated.
 Original plugin options, transient caches, ACF health diagnostics and visitor history
 are retained rather than rewritten. Theme/plugin files, external systems,
 legacy visitor-history files and URL redirects are not converted.
@@ -133,6 +134,12 @@ submitted form values. Their own configuration and privacy documentation govern
 any services those plugins use.
 
 == Changelog ==
+
+= 0.7.4 =
+* Added saved JSON/ACF configuration, AIOSEO and cache post-type dictionary conversion.
+* Migrate Content Planner plan names and XP pattern references with destination conflict checks.
+* Skip deleted target IDs while preserving valid selections and reporting skipped references.
+* Preserve taxonomy identifiers and exact rollback data.
 
 = 0.7.3 =
 * Removed source-code scanning from the saved-configuration migration wizard.

@@ -21,8 +21,8 @@ selections and scalar metadata named after each destination CPT for title querie
 
 Post IDs, slugs, parents, status and media associations are retained. Source CPT rows
 change to their configured destination. Legacy IDs are unioned with existing targets
-rather than replacing them. Selected unpublished/missing/wrong-type targets block
-migration; untagged draft or trashed dimension posts retain their status.
+rather than replacing them. Selected unpublished/wrong-type targets block migration; missing IDs are skipped
+and counted while original relationship rows remain intact; untagged draft or trashed dimension posts retain their status.
 
 Original relationship metadata and ACF companions stay intact. New
 `p26_legacy_dN_ids` fields store ID arrays and have distinct ACF field keys. Translated
@@ -119,14 +119,14 @@ still undergoes reference checks. Compatibility refresh does not add metadata to
 revisions or nonexistent posts.
 
 Targets already in the mapped destination CPT are accepted without changing IDs.
-Missing/wrong-type IDs still block commit and now identify the actual ID and expected
-type. The wizard does not silently discard unresolved selections. Unknown stored
+Wrong-type IDs block commit and identify the actual ID and expected type. Missing
+IDs are skipped and reported from 0.7.4; valid selections continue to migrate. Unknown stored
 references now include option names and bounded excerpts. Source-code scanning has
 been removed from the wizard; commit checks apply to the saved configuration.
 
 Verified post-type-list adapters cover [Yoast Duplicate Post's enabled types](https://github.com/Yoast/duplicate-post/blob/trunk/common-functions.php)
 and [Relevanssi's indexed types](https://github.com/msaari/relevanssi/blob/master/lib/search.php).
-Other generic `included` or `pattern` settings still need their saved values examined.
+Version 0.7.4 adds the reported included-post-type and Content Planner pattern formats.
 The WordPress `rewrite_rules` cache is excluded and regenerated. Each migrated site
 also refreshes its routes once the recorded source plugin is no longer active.
 
@@ -135,3 +135,27 @@ IDs, retained historical/orphaned records, both verified option adapters and rew
 refresh after deactivation. A source-file fixture also verifies commit and rollback
 without scanning or changing files. Reported unsupported database references need
 their saved values examined before conversion.
+
+## Saved configuration formats (0.7.4)
+
+The reported definitions are database configuration, including whole JSON objects and
+serialized ACF settings stored in post_content. Conversion now understands location
+rules where param is post_type, post-type select options/defaults, taxonomy object_type
+assignments, nested included lists beneath postTypes, and sanitized post-type maps.
+Taxonomy names remain unchanged so term assignments and taxonomy identity survive.
+JSON arrays/objects, rule operators and display labels are preserved.
+
+Content Planner options tncp_plan_{source} are renamed to their mapped destination,
+including empty plans discovered by option name. Row IDs, post IDs and revisions remain
+intact. Pattern references, tncp_patterns catalog keys and _tncp_pattern metadata are
+translated together. Existing destination plans and key collisions block overwrite.
+Both old and new option caches are cleared on commit and rollback.
+
+Deleted relationship IDs are omitted from new targets and relationship aliases, with
+an expandable count/detail list in the wizard. Original legacy metadata remains intact;
+valid selections in the same field continue to migrate. No deleted posts are recreated.
+
+Report-shaped fixtures cover every supplied format, missing and mixed valid IDs,
+prewarmed option caches, exact definition/option rollback and destination collisions.
+The tests use the supplied excerpts to construct representative complete records;
+no production database was accessed.
