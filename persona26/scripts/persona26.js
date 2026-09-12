@@ -235,3 +235,10 @@
         });
     }
 })();
+
+// Return server-rendered migration actions to the conditional wizard tab.
+document.addEventListener('DOMContentLoaded', function () {
+    if (new URLSearchParams(window.location.search).get('p26_migration') === '1') {
+        document.getElementById('p26-tab-migrate')?.click();
+    }
+});

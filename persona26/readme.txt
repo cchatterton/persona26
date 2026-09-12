@@ -3,7 +3,7 @@ Contributors:
 Tags: personalisation, analytics, audience, profiles, gravity-forms
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 0.6.2
+Stable tag: 0.7.0
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -74,6 +74,41 @@ and browser profiles first.
 Each visited site initialises its own mapping table and retains independent
 settings. New sites initialise when the plugin first runs in their context.
 
+= Can I migrate from the original Personas plugin? =
+
+With Personas active, configure destination dimensions and Legacy destination
+mapping in Dimensions, then open Migrate Wizard. Run a simulation, resolve its
+blockers and review affected records before committing. Take a full site backup
+and test on staging first. Post IDs stay fixed; both legacy metadata layouts
+are merged into Persona26 targets. Original relationship fields are retained.
+Translated relationship fields store IDs, with ACF support; dimension mirror
+fields store titles. Compatibility fields stay current when targets change.
+
+After checking migrated pages, deactivate Personas through WordPress. The third
+tab disappears, but recovery remains in Dimensions. Rollback checks for edits
+made after commit and refuses to overwrite them. Keep Persona26 active while
+translated relationships are used. Mapped dimension post types cannot be changed
+while migration compatibility is active.
+
+The site-local p26_legacy_journal option stores before/after records (including
+changed option values), non-autoloaded, for recovery. It is retained until a
+new simulation replaces a rolled-back preview. A committed snapshot is not
+automatically discarded. Deactivation retains the journal and compatibility data.
+
+The wizard handles posts, supported block JSON, templates, reusable blocks,
+post metadata, structured options, term metadata and comment metadata. Unknown
+reference contexts, invalid targets, destination slug collisions, serialized
+objects and hard-coded consumers in active components block commit. Original
+plugin options, transient caches, ACF health diagnostics and visitor history
+are retained rather than rewritten. Theme/plugin files, external systems,
+legacy visitor-history files and URL redirects are not converted.
+
+Interactive migrations require InnoDB. Each scanned result set must be below
+10,000 rows; snapshots are limited to 4 MiB. Active-code inspection is bounded
+at 15,000 PHP/JS/JSON files and 100 MiB. Larger sites stop without changing
+content and need a reviewed batch migration. The snapshot is a migration undo
+record, not a replacement for a complete site backup.
+
 == External services ==
 
 GitHub hosts update metadata and release downloads. During WordPress update
@@ -93,6 +128,11 @@ submitted form values. Their own configuration and privacy documentation govern
 any services those plugins use.
 
 == Changelog ==
+
+= 0.7.0 =
+* Added conditional Personas migration wizard, external destination mapping, previews, atomic commits and protected rollback.
+* Preserved legacy tag IDs through compatibility fields and translated structured references safely.
+* Added migration conflict, source-code, database-engine and capacity checks.
 
 = 0.6.2 =
 * Matched Content Planner typography, full-width header, right-aligned pill badges and rounded tabs with top selection accents.

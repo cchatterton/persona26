@@ -237,8 +237,21 @@ function p26_build_alignment_mirrors(array $alignment): array {
  * Replace only Persona26-owned mirror values, preserving unrelated post meta.
  */
 function p26_sync_alignment_mirrors(int $post_id, array $alignment): void {
+    p26_legacy_sync_aliases($post_id, $alignment);
     $previous_mirrors = get_post_meta($post_id, P26_ALIGNMENT_MIRRORS_META, true);
     $previous_mirrors = is_array($previous_mirrors) ? $previous_mirrors : array();
+
+    $profiled_post_type = get_post_type($post_id);
+    $mirrors = in_array($profiled_post_type, p26_profiled_post_types(), true)
+        ? p26_build_alignment_mirrors($alignment)
+        : array();
+    $complete = $mirrors === $previous_mirrors;
+    foreach ($mirrors as $meta_key => $values) {
+        foreach ($values as $value) {
+            if (!in_array($value, get_post_meta($post_id, $meta_key, false), true)) $complete = false;
+        }
+    }
+    if ($complete) return;
 
     foreach ($previous_mirrors as $meta_key => $values) {
         if (!is_string($meta_key) || !is_array($values)) {
@@ -250,10 +263,6 @@ function p26_sync_alignment_mirrors(int $post_id, array $alignment): void {
         }
     }
 
-    $profiled_post_type = get_post_type($post_id);
-    $mirrors = in_array($profiled_post_type, p26_profiled_post_types(), true)
-        ? p26_build_alignment_mirrors($alignment)
-        : array();
     foreach ($mirrors as $meta_key => $values) {
         foreach ($values as $value) {
             add_post_meta($post_id, $meta_key, $value, false);

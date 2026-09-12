@@ -24,9 +24,10 @@ $_COOKIE['p26_id'] = array('invalid');
 p26_test(p26_cookie_id() === '', 'Malformed identity cookies are rejected');
 $_COOKIE['p26_id'] = str_repeat('a',64);
 p26_insert_map(p26_cookie_id(), 123);
-p26_deactivate();
 global $wpdb;
-p26_test((int)$wpdb->get_var('SELECT COUNT(*) FROM ' . p26_table_name()) === 1, 'Deactivation preserves visitor history');
+$map_count = (int)$wpdb->get_var('SELECT COUNT(*) FROM ' . p26_table_name());
+p26_deactivate();
+p26_test((int)$wpdb->get_var('SELECT COUNT(*) FROM ' . p26_table_name()) === $map_count, 'Deactivation preserves visitor history');
 p26_test(get_option('p26_db_version') === P26_DB_VERSION, 'Deactivation preserves schema version');
 p26_test(p26_build_users_heatmap(p26_get_settings(), array((object)array('ID'=>1)), array((object)array('ID'=>2)))['visitors_total'] === 0, 'Absent analytics fails safely');
 
@@ -38,13 +39,13 @@ $http = function($pre, $args, $url) use (&$scenario, &$requests) {
     if ($scenario === 'error') return new WP_Error('transport','Sensitive diagnostic');
     if (str_contains($url,'raw.githubusercontent.com')) {
         if ($scenario === 'redirect' || $scenario === 'api') return $response(404);
-        return $response(200, wp_json_encode(array('version'=>$scenario === 'current' ? P26_VERSION : '0.6.2', 'body'=>'Release notes', 'package'=>'https://evil.test/plugin.zip')));
+        return $response(200, wp_json_encode(array('version'=>$scenario === 'current' ? P26_VERSION : '99.0.0', 'body'=>'Release notes', 'package'=>'https://evil.test/plugin.zip')));
     }
     if (str_contains($url,'api.github.com')) {
-        return $response(200, wp_json_encode(array('tag_name'=>'v0.6.2','body'=>'API notes','assets'=>array(array('name'=>'persona26.zip','browser_download_url'=>'https://github.com/cchatterton/persona26/releases/download/v0.6.2/persona26.zip')))));
+        return $response(200, wp_json_encode(array('tag_name'=>'v99.0.0','body'=>'API notes','assets'=>array(array('name'=>'persona26.zip','browser_download_url'=>'https://github.com/cchatterton/persona26/releases/download/v99.0.0/persona26.zip')))));
     }
-    if ($scenario === 'api') return $response(302,'',array('location'=>'https://evil.test/releases/tag/v0.6.2'));
-    return $response(302,'',array('location'=>'https://github.com/cchatterton/persona26/releases/tag/v0.6.2'));
+    if ($scenario === 'api') return $response(302,'',array('location'=>'https://evil.test/releases/tag/v99.0.0'));
+    return $response(302,'',array('location'=>'https://github.com/cchatterton/persona26/releases/tag/v99.0.0'));
 };
 add_filter('pre_http_request', $http, 10, 3);
 $clear = new ReflectionMethod(P26_GitHub_Updater::class, 'clear_release_cache');
@@ -55,7 +56,7 @@ $check = function($mode) use (&$scenario, &$requests, $clear, $base) {
 };
 $t=$check('manifest');
 p26_test(count($requests)===1, 'Valid manifest uses one request and no API call');
-p26_test($t->response['persona26/persona26.php']->package === 'https://github.com/cchatterton/persona26/releases/download/v0.6.2/persona26.zip', 'Package URL is restricted to configured repository');
+p26_test($t->response['persona26/persona26.php']->package === 'https://github.com/cchatterton/persona26/releases/download/v99.0.0/persona26.zip', 'Package URL is restricted to configured repository');
 P26_GitHub_Updater::inject_update($t);
 p26_test(count($requests)===1, 'Repeated transient hooks reuse cache');
 p26_test(isset($t->response['other/plugin.php']), 'Other plugin updates remain intact');

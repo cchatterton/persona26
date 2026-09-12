@@ -1,3 +1,12 @@
+## 0.7.0 - 2026-09-12
+
+- Added Migrate Wizard when the original Personas plugin is active on the current site, including network activation.
+- Added legacy destination mappings in Dimensions, outside the wizard.
+- Added read-only migration previews, explicit atomic commits, retained recovery snapshots and conflict-aware rollback after legacy deactivation.
+- Preserved post IDs and original tags; merged both legacy relationship layouts into Persona26 targets and maintained ID-based compatibility fields for existing block queries and ACF.
+- Added context-aware block, template, navigation and serialized metadata/options reference conversion. Unknown references and hard-coded active-code consumers block commit.
+- Added migration integration coverage, SQL-failure recovery and responsive keyboard-accessible wizard screens.
+
 # Changelog
 
 All notable changes to Persona26 are recorded here.

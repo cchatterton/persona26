@@ -28,3 +28,13 @@ Release workflow: run validation, update the version/readmes/changelog and `upda
 - `scripts/build-plugin-zip.sh` then `python3 scripts/validate-package.py`.
 
 See `STANDARDS_REVIEW.md` for the review findings, verification and limitations.
+
+## Migration from Personas
+
+Version 0.7.0 adds a conditional **Migrate Wizard** for active Personas installations.
+Configure destination post types, dimensions, content scope and **Legacy destination
+mapping** in Dimensions first. The wizard simulates without changing content, reports
+record counts and blockers, then applies the reviewed plan only on explicit commit.
+After checking migrated pages, switch off Personas. Recovery remains in Dimensions.
+
+See [migration design and limits](MIGRATION.md) before a staging migration.

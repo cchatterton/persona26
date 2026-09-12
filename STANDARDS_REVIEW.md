@@ -1,3 +1,23 @@
+# Persona26 0.7.0 migration wizard
+
+The original Personas 3.1 source and both of its relationship naming layouts were
+reviewed. The migration keeps IDs stable and separates serialized-ID compatibility
+fields from Persona26’s scalar title mirrors. Mapping is configured in Dimensions;
+the conditional wizard owns simulation, explicit commit and recovery only.
+
+See [MIGRATION.md](MIGRATION.md) for coverage, transactional design, safety limits,
+validation and remaining integration limits. Checks passed for both metadata layouts,
+ACF reads, supported stored references, exact rollback, injected SQL failure, edit
+conflicts, nonce/capability enforcement, native browser deactivation/recovery and
+multisite isolation. PHP/JS syntax, browser-profile regressions, the existing 20
+WordPress integration assertions and exact package validation also passed.
+
+The actual block-plugin source and site database were not supplied. Unrecognised
+references and detected hard-coded consumers fail closed at simulation. No production
+site data was changed. Branding remains the user-approved 0.6.2 treatment.
+
+---
+
 # Persona26 0.6.2 branding correction
 
 The user-approved Content Planner screenshot and source styles override the generic TN naming treatment from the earlier standards review. Techn remains the declared author; the product interface now says Persona26.
