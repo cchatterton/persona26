@@ -9,13 +9,13 @@ selections and scalar metadata named after each destination CPT for title querie
 ## Workflow
 
 1. Register destination CPTs outside the wizard. In Dimensions, save destination
-   dimensions and content profiling scope, then save each legacy-to-dimension mapping.
+   dimensions and content profiling scope. In Migrate Wizard, save each legacy-to-dimension mapping.
 2. With Personas active on the site (or network), open Migrate Wizard and simulate.
 3. Review source counts, affected records and blockers. Resolve blockers and resimulate.
 4. Commit the reviewed plan explicitly. Test the destination posts, targets, affected
    blocks and front-end behaviour, then deactivate Personas through WordPress.
-5. To undo, run Check rollback, then Roll back migration. Recovery remains in
-   Dimensions when Personas is inactive. Reactivate Personas after restoration.
+5. To undo, run Check rollback, then Roll back migration. Recovery remains on the
+   wizard tab when Personas is inactive and a committed snapshot exists. Reactivate Personas after restoration.
 
 ## Data and references
 
@@ -79,6 +79,8 @@ release does not silently run a partial/batched migration on large sites.
 - Integration fixtures cover both layouts and their coexistence, existing target
   merging, scalar mirrors, ACF IDs, JSON types/HTML, serialized options and metadata,
   templates, navigation, term/comment metadata and byte-exact rollback.
+- NULL metadata is preserved during simulation, commit and exact rollback. Wizard
+  mapping saves independently of general settings and invalidates stale previews.
 - Negative cases cover stale previews/tokens, injected mid-commit SQL failure,
   post-commit edits, unsupported objects/contexts, ID/key/slug collisions and active
   hard-coded source consumers.
@@ -86,7 +88,7 @@ release does not silently run a partial/batched migration on large sites.
   harness stubs only ACF Pro's options-page registration API, which is unavailable
   in ACF Free. Real field registration, update/read and relationship resolution ran.
 - Browser flow covers simulation, explicit commit, rollback check, native Personas
-  deactivation and recovery in Dimensions. Keyboard navigation, no overflow and
+  deactivation and recovery on the wizard tab. Keyboard navigation, no overflow and
   axe WCAG A/AA checks passed at 1440, 768, 390 and 320 pixel widths.
 - Subscriber capability and invalid administrator nonce requests returned HTTP 403.
 - Network-active detection, second-site commit/rollback and unchanged first-site

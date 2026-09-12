@@ -32,9 +32,9 @@ See `STANDARDS_REVIEW.md` for the review findings, verification and limitations.
 ## Migration from Personas
 
 Version 0.7.0 adds a conditional **Migrate Wizard** for active Personas installations.
-Configure destination post types, dimensions, content scope and **Legacy destination
-mapping** in Dimensions first. The wizard simulates without changing content, reports
+Configure destination post types, dimensions and content scope in Dimensions first.
+Choose and save **Legacy destination mapping** in Migrate Wizard. The wizard simulates without changing content, reports
 record counts and blockers, then applies the reviewed plan only on explicit commit.
-After checking migrated pages, switch off Personas. Recovery remains in Dimensions.
+After checking migrated pages, switch off Personas. Recovery remains on the wizard tab while a committed snapshot exists.
 
 See [migration design and limits](MIGRATION.md) before a staging migration.
