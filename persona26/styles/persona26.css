@@ -257,3 +257,9 @@
     .p26-hero { flex-direction: column; align-items: flex-start; gap: 1rem; }
     .p26-capabilities { flex-shrink: 1; justify-content: flex-end; align-self: stretch; }
 }
+
+.p26-migration-action { margin: 1rem 0; }
+.p26-migration details { margin: 1rem 0; }
+.p26-migration summary { cursor: pointer; font-weight: 600; }
+.p26-migration li { margin-bottom: .5rem; }
+.p26-migration code { overflow-wrap: anywhere; }

@@ -61,10 +61,25 @@ function p26_save_settings(): void {
         )
     );
 
+    foreach ((array) get_option(P26_LEGACY_COMPAT, []) as $dimension) {
+        $position = (int) substr($dimension['key'], 1);
+        if (($tracked[$position]['post_type'] ?? '') !== $dimension['post_type']) {
+            wp_die(esc_html__('A migrated dimension must keep its destination post type while compatibility fields are in use. Roll back the migration before remapping it.', 'persona26'), '', ['back_link' => true]);
+        }
+    }
+
     update_option(P26_SETTINGS_OPTION, [
         'tracked'            => $tracked,
         'content_post_types' => $content_pts,
     ], true);
+    if (p26_legacy_plugin()) {
+        $mapping = isset($_POST['p26_legacy_mapping']) ? (array) wp_unslash($_POST['p26_legacy_mapping']) : [];
+        $saved_mapping = [];
+        foreach (p26_legacy_sources() as $source => $keys) {
+            $saved_mapping[$source] = is_string($mapping[$source] ?? null) ? sanitize_key($mapping[$source]) : '';
+        }
+        update_option(P26_LEGACY_MAP, $saved_mapping, false);
+    }
     p26_queue_alignment_mirror_migration();
 
     p26_rebuild_personalize_css();
@@ -98,6 +113,7 @@ function p26_render_page(): void {
             <?php delete_transient('p26_settings_saved_' . get_current_user_id()); ?>
             <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Persona settings saved.', 'persona26'); ?></p></div>
         <?php endif; ?>
+        <?php p26_legacy_notice(); ?>
         <header class="p26-hero">
             <span class="p26-version" aria-label="<?php echo esc_attr(sprintf(__('Version %s', 'persona26'), P26_VERSION)); ?>">v<?php echo esc_html(P26_VERSION); ?></span>
             <div class="p26-hero-copy">
@@ -115,6 +131,9 @@ function p26_render_page(): void {
         <div class="nav-tab-wrapper p26-main-tabs" role="tablist" aria-label="Persona settings">
             <button type="button" id="p26-tab-dimensions" class="nav-tab nav-tab-active" role="tab" aria-selected="true" aria-controls="p26-panel-dimensions" data-tab="dimensions">Dimensions</button>
             <button type="button" id="p26-tab-matrix" class="nav-tab" role="tab" aria-selected="false" tabindex="-1" aria-controls="p26-panel-matrix" data-tab="matrix">Engagement matrix</button>
+            <?php if (p26_legacy_plugin()): ?>
+                <button type="button" id="p26-tab-migrate" class="nav-tab" role="tab" aria-selected="false" tabindex="-1" aria-controls="p26-panel-migrate" data-tab="migrate">Migrate Wizard</button>
+            <?php endif; ?>
         </div>
 
         <div id="p26-panel-dimensions" class="p26-main-panel active" role="tabpanel" aria-labelledby="p26-tab-dimensions" data-tab="dimensions">
@@ -192,11 +211,13 @@ function p26_render_page(): void {
                     </div>
                 </div>
 
+                <?php p26_legacy_mapping_controls(); ?>
                 <p>
                     <button type="submit" class="button button-primary">Save settings</button>
                     <span class="p26-save-hint">Changes apply after saving.</span>
                 </p>
             </form>
+            <?php if (!p26_legacy_plugin() && 'committed' === (p26_legacy_read_journal()['status'] ?? '')) p26_legacy_render_wizard(true); ?>
         </div>
 
         <div id="p26-panel-matrix" class="p26-main-panel" role="tabpanel" aria-labelledby="p26-tab-matrix" data-tab="matrix" hidden>
@@ -221,6 +242,11 @@ function p26_render_page(): void {
                 </div>
             </div>
         </div>
+        <?php if (p26_legacy_plugin()): ?>
+            <div id="p26-panel-migrate" class="p26-main-panel" role="tabpanel" aria-labelledby="p26-tab-migrate" data-tab="migrate" hidden>
+                <?php p26_legacy_render_wizard(); ?>
+            </div>
+        <?php endif; ?>
         <details class="p26-reference">
             <summary>Developer reference</summary>
             <p>Read configured dimensions with <code>p26_dimensions()</code>. Read a post’s targets with <code>get_post_meta($post_id, 'p26_alignment', true)</code>.</p>
