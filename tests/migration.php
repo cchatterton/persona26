@@ -10,6 +10,9 @@ $original_active = get_option('active_plugins');
 $ids = [];
 $option_name = 'migration_test_widget';
 $term_id = 0; $comment_id = 0;
+$orphan_id = 999999998;
+$saved_adapter_options = [];
+foreach (['duplicate_post_types_enabled','relevanssi_index_post_types','rewrite_rules'] as $key) $saved_adapter_options[$key] = get_option($key);
 $plugin_dir = WP_PLUGIN_DIR . '/p26-legacy-fixture';
 if (!is_dir($plugin_dir)) mkdir($plugin_dir);
 file_put_contents($plugin_dir . '/personas.php', "<?php\n/* Plugin Name: Personas\nVersion: 3.1\n*/\n");
@@ -37,6 +40,13 @@ try {
     $old = $make('post', 'Legacy pre-3 content');
     add_post_meta($old, 'target_personas', [(string)$a]); add_post_meta($old, 'target_interests', [(string)$i]);
     add_post_meta($old, '_target_personas', 'field_personas');
+    add_post_meta($old, 'target_personas', [(string)$existing]);
+    $revision = $make('revision', 'Historical metadata');
+    add_post_meta($revision, 'target_personas', ['999999999']);
+    $wpdb->insert($wpdb->postmeta, ['post_id'=>$orphan_id, 'meta_key'=>'target_personas', 'meta_value'=>serialize(['999999999'])]);
+    update_option('duplicate_post_types_enabled', ['post','__persona']);
+    update_option('relevanssi_index_post_types', ['__interest','page']);
+    update_option('rewrite_rules', ['interests/([^/]+)/?$'=>'index.php?__interest=$matches[1]']);
     add_post_meta($old, '_builder', ['query'=>['post_type'=>['__persona','__interest'], 'meta_key'=>'target_personas']]);
     update_option($option_name, ['post_type'=>'__interest', 'meta_key'=>'__persona'], false);
     $term_id = wp_insert_term('Migration term ' . wp_generate_uuid4(), 'category')['term_id'];
@@ -53,6 +63,7 @@ try {
     p26_legacy_save_mapping(['__persona'=>'d0','__interest'=>'d1']);
     p26_mtest(p26_legacy_read_journal() === [] && p26_settings() === $mapping_settings, 'Saving wizard mapping clears stale preview without changing dimensions or scope');
     $journal = p26_legacy_simulate();
+    p26_mtest($journal['plan']['preserved'] === ['revisions'=>1,'orphaned_meta'=>1], 'Revision and orphaned metadata are retained without scope or ID blockers');
     p26_mtest($journal['plan']['counts']['tagged_content'] === 2, 'Preview counts tagged content');
     p26_mtest(get_post_type($a) === '__persona' && $before === $wpdb->get_results("SELECT * FROM {$wpdb->postmeta} WHERE post_id IN ($post,$old) ORDER BY meta_id", ARRAY_A), 'Simulation leaves content and metadata byte-for-byte unchanged');
     p26_mreject(static fn()=>p26_legacy_commit('stale-token'), 'Stale token rejected');
@@ -72,6 +83,7 @@ try {
     $wpdb->suppress_errors($old_suppress);
     p26_mtest($wpdb->get_var($wpdb->prepare("SELECT post_type FROM {$wpdb->posts} WHERE ID=%d", $a)) === '__persona' && p26_legacy_read_journal()['status'] === 'preview', 'Failed commit preserves source data and preview journal');
     $committed = p26_legacy_commit($journal['token']);
+    p26_mtest(get_option('duplicate_post_types_enabled') === ['post','migration_audience'] && get_option('relevanssi_index_post_types') === ['migration_interest','page'], 'Verified plugin post-type lists are translated');
     p26_mtest(get_post_type($a) === 'migration_audience' && get_post_type($i) === 'migration_interest', 'Post types change while IDs stay fixed');
     p26_mtest(get_post_meta($post, P26_ALIGNMENT_META, true)['dims']['d0'] === [$existing, $a], 'Existing and legacy targets merged');
     p26_mtest(get_post_meta($post, 'p26_legacy_d0_ids', true) === [(string)$existing, (string)$a], 'Relationship aliases retain ID semantics');
@@ -87,6 +99,10 @@ try {
     p26_mtest(get_post_meta($old, '_builder', true)['query']['post_type'] === ['migration_audience','migration_interest'], 'Serialized nested postmeta references translated');
     update_option('active_plugins', $original_active);
     p26_mtest(!p26_legacy_plugin() && p26_legacy_show_wizard(), 'Recovery stays on wizard tab after legacy deactivation');
+    p26_legacy_refresh_deactivated_routes();
+    p26_mtest(!get_option('p26_legacy_pending_rewrite_source'), 'Routes refresh after source plugin deactivation');
+    p26_legacy_sync_aliases($revision, ['dims'=>['d0'=>[$a]]]);
+    p26_mtest(!metadata_exists('post',$revision,'p26_legacy_d0_ids'), 'Compatibility refresh does not change historical revision metadata');
     p26_legacy_rollback($journal['token'], true);
     p26_mtest(get_post_type($a) === 'migration_audience', 'Rollback check is read-only with legacy plugin off');
     // An unchanged mirror refresh must not invalidate the recovery snapshot.
@@ -116,13 +132,25 @@ try {
     wp_delete_post($collision, true);
     $bad_meta = add_post_meta($post, '__persona', ['999999999']);
     $blocked = p26_legacy_simulate();
-    p26_mtest((bool)array_filter($blocked['plan']['blockers'], static fn($b)=>str_contains($b,'wrong-type ID')), 'Missing relationship IDs block migration');
+    p26_mtest((bool)array_filter($blocked['plan']['blockers'], static fn($b)=>str_contains($b,'999999999 no longer exists')), 'Missing relationship IDs block migration');
     delete_metadata_by_mid('post', $bad_meta);
-    $unsafe_file = WPMU_PLUGIN_DIR . '/p26-migration-code-fixture.php';
-    file_put_contents($unsafe_file, '<?php // query __persona');
-    $blocked = p26_legacy_simulate();
-    unlink($unsafe_file);
-    p26_mtest((bool)array_filter($blocked['plan']['blockers'], static fn($b)=>str_contains($b,'Hard-coded')), 'Hard-coded active component references block migration');
+    $source_fixture = WPMU_PLUGIN_DIR . '/p26-migration-code-fixture.php';
+    file_put_contents($source_fixture, '<?php // query __persona');
+    try {
+        $configured = p26_legacy_simulate();
+        p26_mtest(!$configured['plan']['blockers'], 'Source text does not block migration of saved site configuration');
+        p26_legacy_commit($configured['token']);
+        p26_mtest(get_post_type($a) === 'migration_audience' && get_post_type($i) === 'migration_interest', 'Original records move to destinations with IDs intact');
+        p26_mtest(file_get_contents($source_fixture) === '<?php // query __persona', 'Migration leaves component source files unchanged');
+        p26_legacy_rollback($configured['token']);
+    } finally { unlink($source_fixture); }
+    $settings_before_scope = p26_settings();
+    update_option(P26_SETTINGS_OPTION, array_merge($settings_before_scope, ['content_post_types'=>[]]));
+    $scope = p26_legacy_simulate();
+    p26_mtest($scope['plan']['scope_required'] === ['post'=>2], 'Missing scope is grouped by real tagged content type');
+    p26_legacy_include_detected_scope();
+    p26_mtest(p26_settings() === $settings_before_scope && p26_legacy_read_journal() === [], 'Scope action preserves dimensions and invalidates preview');
+    p26_mtest(get_post_meta($revision,'target_personas',true) === ['999999999'], 'Historic revision tags remain untouched');
     // A realistic incompressible field creates a before/after snapshot well over 4 MiB.
     $large_value = base64_encode(random_bytes(1800000));
     add_post_meta($post, 'large_unrelated_payload', $large_value);
@@ -162,6 +190,8 @@ try {
     if ($term_id) wp_delete_term($term_id, 'category');
     if ($comment_id) wp_delete_comment($comment_id, true);
     foreach ($ids as $id) wp_delete_post($id, true);
+    $wpdb->delete($wpdb->postmeta, ['post_id'=>$orphan_id]);
+    foreach ($saved_adapter_options as $key=>$value) { if (false === $value) delete_option($key); else update_option($key,$value); }
     update_option(P26_SETTINGS_OPTION, $original_settings);
     if (false === $original_map) delete_option(P26_LEGACY_MAP); else update_option(P26_LEGACY_MAP, $original_map);
     update_option('active_plugins', $original_active);

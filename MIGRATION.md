@@ -41,10 +41,10 @@ versus objects. This is prepared SQL over planned records, never blind SQL REPLA
 Covered tables are the current site's posts, postmeta, options, termmeta and
 commentmeta. Shared users/usermeta, other sites, external services and files are not
 changed. Original options/history and diagnostic/transient caches are excluded.
-Active plugin/theme/MU-plugin PHP, JS and JSON are scanned for hard-coded consumers;
-findings block commit. This scan is conservative, not a proof of all dynamically
-constructed code references. Custom block schemas may need an adapter. The actual
-block plugin source/site database was not provided for validation.
+The wizard migrates saved site configuration; it does not scan or modify component
+source files. Unknown stored reference formats remain visible in the preview so
+conversion can be based on the saved values. The actual site database was not
+provided for validation.
 
 ## Atomicity and recovery
 
@@ -76,8 +76,8 @@ content migration, so PHP memory/time and the existing row limits still apply. A
 replaced by another simulation. Successful rollback allows a new simulation. Settings
 cannot remap migrated destination dimensions while compatibility is active.
 
-Queries are bounded below 10,000 rows per result set; active-code inspection is capped
-at 15,000 files / 100 MiB. Exceeding a bound blocks the interactive migration. This
+Queries are bounded below 10,000 rows per result set. Exceeding this bound blocks
+the interactive migration. This
 release does not silently run a partial/batched migration on large sites.
 
 ## Validation
@@ -93,8 +93,8 @@ release does not silently run a partial/batched migration on large sites.
   chunk-write failure are rejected without partial migration. Existing journal
   formats remain readable and recoverable.
 - Negative cases cover stale previews/tokens, injected mid-commit SQL failure,
-  post-commit edits, unsupported objects/contexts, ID/key/slug collisions and active
-  hard-coded source consumers.
+  post-commit edits, unsupported objects/contexts and ID/key/slug collisions.
+  Source-file text does not block database migration and remains unchanged.
 - Actual supplied Personas 3.1 and ACF Free 6.8.10 loaded together. The disposable
   harness stubs only ACF Pro's options-page registration API, which is unavailable
   in ACF Free. Real field registration, update/read and relationship resolution ran.
@@ -107,3 +107,31 @@ release does not silently run a partial/batched migration on large sites.
 
 No production site was modified. A real-site staging run remains necessary for the
 site's block plugin, theme, external caches and any historical visitor-profile logic.
+
+## Site report handling (0.7.3)
+
+Missing scope is grouped by real tagged content type. The explicit **Include detected
+content types** action unions those types into profiling scope, keeps dimensions
+unchanged and invalidates the old preview. Empty relationships do not require scope.
+Revision relationship metadata and orphaned metadata are retained untouched; they are
+counted in the report rather than being treated as live content. Revision block content
+still undergoes reference checks. Compatibility refresh does not add metadata to
+revisions or nonexistent posts.
+
+Targets already in the mapped destination CPT are accepted without changing IDs.
+Missing/wrong-type IDs still block commit and now identify the actual ID and expected
+type. The wizard does not silently discard unresolved selections. Unknown stored
+references now include option names and bounded excerpts. Source-code scanning has
+been removed from the wizard; commit checks apply to the saved configuration.
+
+Verified post-type-list adapters cover [Yoast Duplicate Post's enabled types](https://github.com/Yoast/duplicate-post/blob/trunk/common-functions.php)
+and [Relevanssi's indexed types](https://github.com/msaari/relevanssi/blob/master/lib/search.php).
+Other generic `included` or `pattern` settings still need their saved values examined.
+The WordPress `rewrite_rules` cache is excluded and regenerated. Each migrated site
+also refreshes its routes once the recorded source plugin is no longer active.
+
+Regression tests cover grouped scope repair, preserved dimensions, already-mapped
+IDs, retained historical/orphaned records, both verified option adapters and rewrite
+refresh after deactivation. A source-file fixture also verifies commit and rollback
+without scanning or changing files. Reported unsupported database references need
+their saved values examined before conversion.

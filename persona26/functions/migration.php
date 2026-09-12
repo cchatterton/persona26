@@ -147,11 +147,17 @@ function p26_legacy_like(string $column): string {
     return '(' . implode(' OR ', $parts) . ')';
 }
 
+function p26_legacy_reference_excerpt(?string $value): string {
+    if (!$value || !preg_match('/__persona|__interest|target_personas|target_interests|field_personas|field_interests/', $value, $match, PREG_OFFSET_CAPTURE)) return '';
+    $start = max(0, $match[0][1] - 80);
+    return trim((string) preg_replace('/\s+/', ' ', wp_check_invalid_utf8(substr($value, $start, 220), true)));
+}
+
 /** Build exact before/after records. The same planner is rerun under locks at commit. */
 function p26_legacy_plan(bool $lock = false): array {
     global $wpdb;
     $map = p26_legacy_mapping();
-    $plan = ['mapping' => $map, 'settings' => p26_settings(), 'posts' => [], 'meta' => [], 'other' => [], 'blockers' => [], 'counts' => ['personas' => 0, 'interests' => 0, 'tagged_content' => 0, 'reference_records' => 0]];
+    $plan = ['mapping' => $map, 'settings' => p26_settings(), 'posts' => [], 'meta' => [], 'other' => [], 'blockers' => [], 'scope_required' => [], 'preserved' => ['revisions' => 0, 'orphaned_meta' => 0], 'counts' => ['personas' => 0, 'interests' => 0, 'tagged_content' => 0, 'reference_records' => 0]];
     $suffix = ' LIMIT ' . P26_LEGACY_LIMIT . ($lock ? ' FOR UPDATE' : '');
     $posts = p26_legacy_rows("SELECT * FROM {$wpdb->posts} WHERE post_type IN ('__persona','__interest') OR " . p26_legacy_like('post_content') . ' OR ' . p26_legacy_like('post_excerpt') . ' ORDER BY ID' . $suffix);
     $source_ids = [];
@@ -171,7 +177,7 @@ function p26_legacy_plan(bool $lock = false): array {
             try {
                 $after[$column] = 'acf-field' === $row['post_type'] ? p26_legacy_transform($row[$column], $map) : p26_legacy_content($row[$column], $map);
                 $plan['counts']['reference_records']++;
-            } catch (RuntimeException $error) { $plan['blockers'][] = "Post {$row['ID']} $column: " . $error->getMessage(); }
+            } catch (RuntimeException $error) { $plan['blockers'][] = "Post {$row['ID']} $column: " . $error->getMessage() . ' Reference: ' . p26_legacy_reference_excerpt($row[$column]); }
         }
         if ($after !== $row) $plan['posts'][$row['ID']] = ['before' => $row, 'after' => $after];
     }
@@ -180,6 +186,11 @@ function p26_legacy_plan(bool $lock = false): array {
     $candidates = p26_legacy_rows("SELECT * FROM {$wpdb->postmeta} WHERE meta_key IN ($key_sql) OR " . p26_legacy_like('meta_value') . ' ORDER BY meta_id' . $suffix);
     $post_ids = array_unique(array_map('intval', array_column($candidates, 'post_id')));
     foreach ($post_ids as $post_id) {
+        $content_type = $wpdb->get_var($wpdb->prepare("SELECT post_type FROM {$wpdb->posts} WHERE ID = %d", $post_id));
+        if (!$content_type) { $plan['preserved']['orphaned_meta']++; continue; }
+        // Retain historic revision relationship metadata; it is not live profiled content.
+        if ('revision' === $content_type) { $plan['preserved']['revisions']++; continue; }
+        $content_type = $map[$content_type]['post_type'] ?? $content_type;
         $before = p26_legacy_rows($wpdb->prepare("SELECT * FROM {$wpdb->postmeta} WHERE post_id = %d ORDER BY meta_id", $post_id) . $suffix);
         $after = $before;
         $tags = [];
@@ -192,8 +203,12 @@ function p26_legacy_plan(bool $lock = false): array {
                     if ('' === $ids || false === $ids || null === $ids) $ids = [];
                     if (!is_array($ids)) throw new RuntimeException('Relationship value is not an ID array.');
                     foreach ($ids as $id) {
-                        if (!(is_int($id) || (is_string($id) && ctype_digit($id))) || (int) $id < 1 || !isset($source_ids[(int) $id]) || $source_ids[(int) $id]['post_type'] !== $source) throw new RuntimeException('Relationship contains a missing or wrong-type ID.');
-                        if ('publish' !== $source_ids[(int) $id]['post_status']) throw new RuntimeException('A tagged persona/interest is not published; resolve its status before migration.');
+                        if (!(is_int($id) || (is_string($id) && ctype_digit($id))) || (int) $id < 1) throw new RuntimeException('Invalid relationship ID value: ' . substr((string) wp_json_encode($id), 0, 80));
+                        $target = $source_ids[(int) $id] ?? $wpdb->get_row($wpdb->prepare("SELECT * FROM {$wpdb->posts} WHERE ID = %d", $id), ARRAY_A);
+                        if (!$target) throw new RuntimeException("Relationship ID $id no longer exists. Restore it or explicitly repair this tag before migration.");
+                        if (!in_array($target['post_type'], [$source, $map[$source]['post_type']], true)) throw new RuntimeException("Relationship ID $id is type {$target['post_type']}; expected $source or {$map[$source]['post_type']}.");
+                        $source_ids[(int) $id] = $target;
+                        if ('publish' !== $source_ids[(int) $id]['post_status']) throw new RuntimeException("Relationship ID $id has status {$source_ids[(int) $id]['post_status']}; resolve its status before migration.");
                         $tags[$map[$source]['key']][] = (int) $id;
                     }
                     $tags[$map[$source]['key']] ??= [];
@@ -203,15 +218,13 @@ function p26_legacy_plan(bool $lock = false): array {
             if (in_array($row['meta_key'], array_map(static fn($k) => '_' . $k, $keys), true)) continue;
             if (p26_legacy_has_reference($row['meta_value'])) {
                 try {
-                    $after[$index]['meta_value'] = p26_legacy_transform($row['meta_value'], $map, $row['meta_key']);
+                    $after[$index]['meta_value'] = p26_legacy_transform($row['meta_value'], $map, (string) $row['meta_key']);
                     $plan['counts']['reference_records']++;
                 } catch (RuntimeException $error) { $plan['blockers'][] = "Post $post_id meta {$row['meta_id']}: " . $error->getMessage(); }
             }
         }
         if ($tags) {
-            $content_type = $wpdb->get_var($wpdb->prepare("SELECT post_type FROM {$wpdb->posts} WHERE ID = %d", $post_id));
-            $content_type = $map[$content_type]['post_type'] ?? $content_type;
-            if (!in_array($content_type, p26_profiled_post_types(), true)) $plan['blockers'][] = "Post $post_id: enable $content_type in Content profiling scope first.";
+            if (array_filter($tags) && !in_array($content_type, p26_profiled_post_types(), true)) $plan['scope_required'][$content_type] = ($plan['scope_required'][$content_type] ?? 0) + 1;
             $alignment_rows = array_values(array_filter($before, static fn($r) => P26_ALIGNMENT_META === $r['meta_key']));
             try {
                 if (count($alignment_rows) > 1) throw new RuntimeException('Multiple alignment records.');
@@ -251,60 +264,29 @@ function p26_legacy_plan(bool $lock = false): array {
                     p26_legacy_set_meta($after, $post_id, $alias, array_map('strval', $alignment['dims'][$dimension['key']] ?? []));
                     p26_legacy_set_meta($after, $post_id, '_' . $alias, $dimension['field']);
                 }
-                $plan['counts']['tagged_content']++;
+                $plan['counts']['tagged_content'] += array_filter($tags) ? 1 : 0;
             } catch (RuntimeException $error) { $plan['blockers'][] = "Post $post_id: " . $error->getMessage(); }
         }
         if ($after !== $before) $plan['meta'][$post_id] = ['before' => $before, 'after' => $after];
     }
     foreach (['options' => ['option_id', 'option_value'], 'termmeta' => ['meta_id', 'meta_value'], 'commentmeta' => ['meta_id', 'meta_value']] as $table => [$id, $value]) {
         $where = p26_legacy_like($value);
-        if ('options' === $table) $where .= " AND option_name NOT LIKE 'p26\\_%' AND option_name NOT LIKE '\\_transient\\_%' AND option_name NOT LIKE '\\_site\\_transient\\_%' AND option_name NOT LIKE 'options\\_\\_\\_%' AND option_name NOT LIKE '\\_options\\_\\_\\_%' AND option_name NOT LIKE 'persona\\_%' AND option_name NOT IN ('active_plugins','recently_activated','acf_site_health')";
+        if ('options' === $table) $where .= " AND option_name NOT LIKE 'p26\\_%' AND option_name NOT LIKE '\\_transient\\_%' AND option_name NOT LIKE '\\_site\\_transient\\_%' AND option_name NOT LIKE 'options\\_\\_\\_%' AND option_name NOT LIKE '\\_options\\_\\_\\_%' AND option_name NOT LIKE 'persona\\_%' AND option_name NOT IN ('active_plugins','recently_activated','acf_site_health','rewrite_rules')";
         foreach (p26_legacy_rows("SELECT * FROM {$wpdb->$table} WHERE $where ORDER BY $id" . $suffix) as $row) {
             try {
                 $after = $row;
-                $after[$value] = p26_legacy_transform($row[$value], $map, $row['meta_key'] ?? $row['option_name']);
+                $context = (string) ($row['meta_key'] ?? $row['option_name'] ?? '');
+                // Verified post-type lists in Yoast Duplicate Post and Relevanssi.
+                if ('options' === $table && in_array($row['option_name'], ['duplicate_post_types_enabled', 'relevanssi_index_post_types'], true)) $context = 'post_type';
+                $after[$value] = p26_legacy_transform($row[$value], $map, $context);
                 if ($after !== $row) { $plan['other'][] = ['table' => $table, 'id' => $id, 'before' => $row, 'after' => $after]; $plan['counts']['reference_records']++; }
-            } catch (RuntimeException $error) { $plan['blockers'][] = "$table {$row[$id]}: " . $error->getMessage(); }
+            } catch (RuntimeException $error) { $plan['blockers'][] = "$table {$row[$id]} (" . ($row['option_name'] ?? $row['meta_key'] ?? 'unnamed') . '): ' . $error->getMessage() . ' Reference: ' . p26_legacy_reference_excerpt($row[$value]); }
         }
     }
-    $plan['blockers'] = array_values(array_unique(array_merge($plan['blockers'], p26_legacy_code_references())));
+    foreach ($plan['scope_required'] as $type => $count) $plan['blockers'][] = "Content profiling: enable $type for $count tagged content records.";
+    $plan['blockers'] = array_values(array_unique($plan['blockers']));
     p26_legacy_snapshot_memory(strlen(serialize($plan)));
     return $plan;
-}
-
-/** Stored references cannot repair hard-coded consumers in another active component. */
-function p26_legacy_code_references(): array {
-    $legacy = p26_legacy_plugin();
-    $roots = [];
-    foreach (array_merge((array) get_option('active_plugins', []), array_keys((array) get_site_option('active_sitewide_plugins', []))) as $plugin) {
-        if ($plugin === ($legacy['file'] ?? '') || $plugin === plugin_basename(P26_PLUGIN_FILE)) continue;
-        $file = WP_PLUGIN_DIR . '/' . $plugin;
-        $roots[] = str_contains($plugin, '/') ? dirname($file) : $file;
-    }
-    $roots[] = get_stylesheet_directory();
-    $roots[] = get_template_directory();
-    if (is_dir(WPMU_PLUGIN_DIR)) $roots[] = WPMU_PLUGIN_DIR;
-    $blockers = [];
-    $files = 0;
-    $bytes = 0;
-    foreach (array_unique($roots) as $root) {
-        if (!file_exists($root)) continue;
-        try {
-            $iterator = is_file($root) ? [new SplFileInfo($root)] : new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root, FilesystemIterator::SKIP_DOTS));
-            foreach ($iterator as $file) {
-                if (!$file->isFile() || $file->isLink() || !in_array(strtolower($file->getExtension()), ['php', 'js', 'json'], true)) continue;
-                $files++;
-                $bytes += $file->getSize();
-                if ($files > 15000 || $bytes > 100 * 1024 * 1024) return array_merge($blockers, ['Active-code inspection exceeded its safe limit; a reviewed code audit is required.']);
-                $content = file_get_contents($file->getPathname());
-                if (false === $content) { $blockers[] = 'Cannot inspect an active component: ' . basename($root); continue; }
-                if (p26_legacy_has_reference($content) || preg_match('/\bget_(?:persona|personas|interest|interests|cookie_history)\s*\(/', $content)) {
-                    $blockers[] = 'Hard-coded legacy consumer in ' . str_replace(trailingslashit(WP_CONTENT_DIR), '', $file->getPathname()) . '. Update this component before migration.';
-                }
-            }
-        } catch (UnexpectedValueException $error) { $blockers[] = 'Cannot inspect an active component: ' . basename($root); }
-    }
-    return $blockers;
 }
 
 function p26_legacy_set_meta(array &$rows, int $post_id, string $key, $value): void {
@@ -528,10 +510,14 @@ function p26_legacy_clear_caches(array $plan): void {
     foreach ([P26_LEGACY_JOURNAL, P26_LEGACY_COMPAT, 'alloptions', 'notoptions'] as $key) wp_cache_delete($key, 'options');
     p26_rebuild_personalize_css();
     flush_rewrite_rules(false);
+    $source_plugin = get_option(P26_LEGACY_COMPAT) ? p26_legacy_plugin() : [];
+    if ($source_plugin) update_option('p26_legacy_pending_rewrite_source', $source_plugin['file'], false);
+    else delete_option('p26_legacy_pending_rewrite_source');
 }
 
 /** Keep translated ID queries current when an editor changes Persona26 targets. */
 function p26_legacy_sync_aliases(int $post_id, array $alignment): void {
+    if (!get_post($post_id) || 'revision' === get_post_type($post_id)) return;
     $map = get_option(P26_LEGACY_COMPAT, []);
     if (!$map) return;
     $alignment = p26_normalize_alignment($alignment);
@@ -550,3 +536,14 @@ function p26_legacy_register_acf_fields(): void {
     }
 }
 add_action('acf/init', 'p26_legacy_register_acf_fields', 30);
+
+/** Regenerate this site's routes after the original plugin has actually stopped loading. */
+function p26_legacy_refresh_deactivated_routes(): void {
+    $source = get_option('p26_legacy_pending_rewrite_source', '');
+    if (!$source) return;
+    $active = array_merge((array) get_option('active_plugins', []), array_keys((array) get_site_option('active_sitewide_plugins', [])));
+    if (in_array($source, $active, true)) return;
+    flush_rewrite_rules(false);
+    delete_option('p26_legacy_pending_rewrite_source');
+}
+add_action('init', 'p26_legacy_refresh_deactivated_routes', 99);

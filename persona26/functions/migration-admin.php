@@ -14,6 +14,10 @@ function p26_legacy_admin_action(): void {
                 p26_legacy_save_mapping($posted);
                 $message = 'Destination mapping saved. Run a new simulation to review the changes.';
                 break;
+            case 'include_scope':
+                p26_legacy_include_detected_scope();
+                $message = 'Detected content types added to profiling scope. Run a new simulation to review the remaining references.';
+                break;
             case 'simulate':
                 p26_legacy_simulate();
                 $message = 'Simulation complete. Review the counts, record changes and any blockers below. Site content has not changed.';
@@ -78,6 +82,26 @@ function p26_legacy_save_mapping(array $posted): void {
     foreach ([P26_LEGACY_MAP, P26_LEGACY_JOURNAL, 'alloptions', 'notoptions'] as $key) wp_cache_delete($key, 'options');
 }
 
+/** An explicit wizard action repairs scope once per content type, not per post. */
+function p26_legacy_include_detected_scope(): void {
+    if (!p26_legacy_plugin()) throw new RuntimeException('Activate Personas before preparing migration.');
+    p26_legacy_transaction(static function (): void {
+        global $wpdb;
+        $journal = p26_legacy_read_journal(true);
+        if ('preview' !== ($journal['status'] ?? '')) throw new RuntimeException('Run a simulation before adding detected content types.');
+        $types = array_keys($journal['plan']['scope_required'] ?? []);
+        if (!$types) throw new RuntimeException('No additional content types were detected.');
+        if (array_diff($types, array_keys(p26_all_post_types()))) throw new RuntimeException('A detected content type is no longer available. Review its registration and simulate again.');
+        $settings = p26_legacy_decode((string) $wpdb->get_var($wpdb->prepare("SELECT option_value FROM {$wpdb->options} WHERE option_name = %s FOR UPDATE", P26_SETTINGS_OPTION)));
+        if (!is_array($settings)) throw new RuntimeException('Save your Persona26 dimensions first.');
+        $settings['content_post_types'] = array_values(array_unique(array_merge((array) ($settings['content_post_types'] ?? []), $types)));
+        p26_legacy_sql($wpdb->update($wpdb->options, ['option_value' => serialize($settings)], ['option_name' => P26_SETTINGS_OPTION]));
+        p26_legacy_delete_journal();
+    });
+    foreach ([P26_SETTINGS_OPTION, P26_LEGACY_JOURNAL, 'alloptions', 'notoptions'] as $key) wp_cache_delete($key, 'options');
+    p26_queue_alignment_mirror_migration();
+}
+
 /** Mapping has its own form and cannot overwrite general dimension settings. */
 function p26_legacy_mapping_controls(): void {
     if (!p26_legacy_plugin()) return;
@@ -109,7 +133,7 @@ function p26_legacy_render_wizard(bool $recovery = false): void {
         p26_legacy_form_start('rollback', $journal['token']);
         echo '<p><label><input type="checkbox" name="acknowledge" value="1" required> Restore the original post types, metadata and references from this migration snapshot.</label></p><button class="button" type="submit">Roll back migration</button></form>';
     } elseif (!$recovery) {
-        echo '<ol><li><strong>Map:</strong> choose the destination for each original post type below.</li><li><strong>Simulate:</strong> review changes without changing site content.</li><li><strong>Commit:</strong> apply the reviewed plan and retain a recovery snapshot.</li></ol>';
+        echo '<ol><li><strong>Map:</strong> choose the destination for each original post type below.</li><li><strong>Simulate:</strong> review changes to post types, metadata and saved references. Original records keep their IDs.</li><li><strong>Commit:</strong> apply the reviewed plan and retain a recovery snapshot.</li></ol>';
         if ('rolled_back' === $status) echo '<p>The previous migration was rolled back. You can run a new simulation.</p>';
         p26_legacy_mapping_controls();
         p26_legacy_form_start('simulate');
@@ -120,6 +144,14 @@ function p26_legacy_render_wizard(bool $recovery = false): void {
         echo '<h3>' . ('preview' === $status ? 'Simulation results' : 'Migration record') . '</h3><ul>';
         foreach ($plan['mapping'] as $source => $dimension) echo '<li><code>' . esc_html($source) . '</code> → ' . esc_html($dimension['label']) . '; relationship field <code>' . esc_html($dimension['alias']) . '</code></li>';
         echo '</ul><p>' . esc_html(sprintf('%d personas · %d interests · %d tagged content records · %d stored reference records', $plan['counts']['personas'], $plan['counts']['interests'], $plan['counts']['tagged_content'], $plan['counts']['reference_records'])) . '</p>';
+        if (!empty($plan['preserved']['revisions']) || !empty($plan['preserved']['orphaned_meta'])) {
+            echo '<p class="description">' . esc_html(sprintf('Retained without changing historical metadata: %d revision records and %d metadata groups whose posts no longer exist. These do not require content profiling.', $plan['preserved']['revisions'] ?? 0, $plan['preserved']['orphaned_meta'] ?? 0)) . '</p>';
+        }
+        if ('preview' === $status && !empty($plan['scope_required'])) {
+            echo '<h3>Content profiling scope</h3><p>These tagged content types need profiling enabled: <strong>' . esc_html(implode(', ', array_keys($plan['scope_required']))) . '</strong>.</p>';
+            p26_legacy_form_start('include_scope');
+            echo '<button class="button" type="submit">Include detected content types</button></form>';
+        }
         if ($plan['blockers']) {
             echo '<div class="notice notice-error inline"><p><strong>Resolve these before committing</strong></p><ul>';
             foreach ($plan['blockers'] as $blocker) echo '<li>' . esc_html($blocker) . '</li>';
@@ -138,5 +170,5 @@ function p26_legacy_render_wizard(bool $recovery = false): void {
             echo '<p><label><input type="checkbox" name="acknowledge" value="1" required> I have reviewed the simulation, have a full site backup, and am ready to apply these changes.</label></p><button class="button button-primary" type="submit">Commit migration</button></form>';
         }
     }
-    echo '<p class="description">Coverage: this site’s posts, block attributes, templates, reusable blocks, post metadata, structured options, term metadata and comment metadata. Unrecognised references block commit. Original relationship fields and visitor history are retained. Theme/plugin PHP, external systems, old visitor-history files, URL redirects and caches outside WordPress are not converted; test those integrations on staging before switching off Personas.</p></div>';
+    echo '<p class="description">Coverage: this site’s posts, block attributes, templates, reusable blocks, post metadata, structured options, term metadata and comment metadata. Unrecognised references block commit. Original relationship fields and visitor history are retained. This wizard migrates saved site configuration. Check the affected pages before switching off Personas.</p></div>';
 }

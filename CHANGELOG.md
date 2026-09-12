@@ -1,3 +1,12 @@
+## 0.7.3 - 2026-09-12
+
+- Focus migration on saved site configuration; remove source-file scanning and its commit blockers.
+- Group missing profiling scope by content type and add an explicit wizard action to include detected types.
+- Retain revision and orphaned relationship metadata without requiring profiling or modifying historical tags.
+- Accept legacy IDs already belonging to their mapped destination post type and identify missing or mismatched IDs precisely.
+- Translate verified Duplicate Post and Relevanssi post-type options, and regenerate WordPress rewrite rules instead of treating their cache as a blocker.
+- Include option names and reference excerpts in remaining blockers; refresh routes after the source plugin stops loading.
+
 ## 0.7.2 - 2026-09-12
 
 - Removed the fixed 4 MiB migration snapshot ceiling.
