@@ -15,6 +15,13 @@ Migration integration tests, PHP syntax and package validation passed. Browser c
 cover independent mapping save, tab retention, commit/recovery, paired field geometry,
 keyboard access and responsive axe scans at 1440, 768, 390 and 320 pixels.
 
+Released [0.7.1](https://github.com/cchatterton/persona26/releases/tag/v0.7.1)
+through [PR #6](https://github.com/cchatterton/persona26/pull/6). The published tag
+matches source commit `45c0d63fed23f37468f76bd12b7abc2fea5ad090`. The 56,755-byte ZIP
+matches the committed artifact; SHA-256:
+`4ccab11ee23b804d39cb1313884592c1de8eef9b9e1052a642eb32c5f42c74dd`.
+Native WordPress update from 0.7.0 to 0.7.1 passed; installed files match the release.
+
 ---
 
 # Persona26 0.7.0 migration wizard
