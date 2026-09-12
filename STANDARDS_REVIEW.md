@@ -16,6 +16,17 @@ The actual block-plugin source and site database were not supplied. Unrecognised
 references and detected hard-coded consumers fail closed at simulation. No production
 site data was changed. Branding remains the user-approved 0.6.2 treatment.
 
+Released [0.7.0](https://github.com/cchatterton/persona26/releases/tag/v0.7.0)
+through [PR #5](https://github.com/cchatterton/persona26/pull/5). Source tag:
+`f628e03a70cfa6ccb971ed25cfa8cf6c1549aca9`. The latest public release and expected
+56,147-byte ZIP were verified. SHA-256:
+`034c5b2bd8d7b308d2d6432b563ecd2273807ae24dd0e8409200cb7669f28bc7`.
+
+Native WordPress upgrade from 0.6.2 to 0.7.0 passed and every installed file matches
+the public asset. The subsequent check reports up to date. A committed migration
+snapshot survived the upgrade; serialized-ID queries, ACF relationship reads and
+rollback all passed with the original Personas plugin inactive.
+
 ---
 
 # Persona26 0.6.2 branding correction
