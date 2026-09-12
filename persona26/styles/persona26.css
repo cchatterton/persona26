@@ -9,15 +9,16 @@
 }
 
 .p26-form-panel {
-    max-width: 980px;
+    max-width: none;
 }
 
 .p26-card {
-    margin: 16px 0;
-    padding: 20px;
+    margin: 1rem 0;
+    padding: 1.25rem;
     background: #fff;
-    border: 1px solid #dcdcde;
-    border-radius: 6px;
+    border: 0.0625rem solid var(--p26-border);
+    border-radius: 0.75rem;
+    box-shadow: 0 0.2rem 0.8rem rgba(0, 40, 64, 0.07);
 }
 
 .p26-post-type-column {
@@ -34,16 +35,16 @@
 
 .p26-checkbox-grid {
     columns: 2;
-    column-gap: 24px;
+    column-gap: 1.5rem;
 }
 
 .p26-checkbox {
     display: block;
-    margin: 0 0 6px;
+    margin: 0 0 0.375rem;
     break-inside: avoid;
 }
 
-.is-locked .p26-remove {
+.p26-wrap .is-locked .p26-remove {
     display: none;
 }
 
@@ -60,27 +61,27 @@
     position: relative;
 }
 
-.link-button {
-    padding: 0 6px;
+.p26-wrap .link-button {
+    padding: 0 0.375rem;
     background: transparent;
     border: 0;
     cursor: pointer;
 }
 
 .p26-main-tabs {
-    margin-bottom: 18px;
+    margin-bottom: 1.125rem;
 }
 
 .p26-sub-tabs {
-    margin-bottom: 16px;
+    margin-bottom: 1rem;
 }
 
 .p26-users-summary {
-    margin: 0 0 10px;
+    margin: 0 0 0.625rem;
 }
 
 .p26-section {
-    margin-bottom: 12px;
+    margin-bottom: 0.75rem;
 }
 
 .p26-section:last-child {
@@ -88,22 +89,22 @@
 }
 
 .p26-label {
-    margin: 0 0 6px;
-    font-size: 13px;
+    margin: 0 0 0.375rem;
+    font-size: 0.8125rem;
 }
 
 .p26-tagbox {
-    padding: 6px;
+    padding: 0.375rem;
     background: #fff;
-    border: 1px solid #c3c4c7;
-    border-radius: 2px;
+    border: 0.0625rem solid #c3c4c7;
+    border-radius: 0.125rem;
 }
 
 .p26-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    margin: 0 0 6px;
+    gap: 0.375rem;
+    margin: 0 0 0.375rem;
 }
 
 .p26-tags:empty {
@@ -113,12 +114,12 @@
 .p26-tag {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 2px 6px;
+    gap: 0.375rem;
+    padding: 0.125rem 0.375rem;
     background: #f0f0f1;
-    border: 1px solid #c3c4c7;
-    border-radius: 2px;
-    font-size: 12px;
+    border: 0.0625rem solid #c3c4c7;
+    border-radius: 0.125rem;
+    font-size: 0.75rem;
     line-height: 1.6;
 }
 
@@ -129,7 +130,7 @@
     background: transparent;
     border: 0;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 0.875rem;
     line-height: 1;
 }
 
@@ -139,11 +140,11 @@
 }
 
 .p26-dropdown {
-    max-height: 180px;
-    margin-top: 6px;
+    max-height: 11.25rem;
+    margin-top: 0.375rem;
     overflow: auto;
     background: #fff;
-    border: 1px solid #c3c4c7;
+    border: 0.0625rem solid #c3c4c7;
 }
 
 .p26-dropdown[hidden],
@@ -155,7 +156,7 @@
 .p26-option {
     display: block;
     width: 100%;
-    padding: 6px 8px;
+    padding: 0.375rem 0.5rem;
     background: transparent;
     border: 0;
     cursor: pointer;
@@ -165,18 +166,78 @@
 .p26-option:hover,
 .p26-option:focus {
     background: #f0f6fc;
-    outline: 2px solid #2271b1;
-    outline-offset: -2px;
+    outline: 0.125rem solid #2271b1;
+    outline-offset: -0.125rem;
 }
 
 .p26-help {
-    margin: 6px 0 0;
+    margin: 0.375rem 0 0;
     color: #646970;
-    font-size: 12px;
+    font-size: 0.75rem;
 }
 
-@media (max-width: 782px) {
+@media (max-width: 48.875rem) {
     .p26-checkbox-grid {
         columns: 1;
     }
+}
+
+/* Author Branded settings surface; editor and Gravity Forms retain native UI. */
+.p26-wrap {
+    --p26-ink: #0a263b;
+    --p26-muted: #5c6d79;
+    --p26-navy: #002840;
+    --p26-orange: #ff6b00;
+    --p26-border: #d5dfe5;
+    max-width: 80rem;
+    color: var(--p26-ink);
+}
+.p26-hero {
+    position: relative;
+    margin-top: 1rem;
+    padding: 2rem 1.5rem 1.5rem;
+    border-radius: 0.875rem;
+    color: #fff;
+    background: radial-gradient(circle at 88% 10%, rgba(18, 92, 138, .58), transparent 24rem), linear-gradient(125deg, #001d31, #063b5d);
+    box-shadow: 0 0.75rem 2rem rgba(0, 40, 64, .2);
+}
+.p26-wrap .p26-eyebrow {
+    margin: 0 0 .5rem;
+    font-size: .75rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+}
+.p26-hero .p26-eyebrow { color: #ff6b00; padding-right: 5rem; }
+.p26-hero h2 { color: #fff; font-size: 2rem; line-height: 1.2; margin: 0 0 .75rem; }
+.p26-hero .p26-hero-lead { font-size: 1rem; margin: 0; max-width: 45rem; }
+.p26-version { position: absolute; top: 1rem; right: 1.5rem; font-size: .75rem; color: #c4d5df; }
+.p26-capabilities { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1rem; }
+.p26-capabilities span { border: .0625rem solid #52758b; border-radius: .4rem; padding: .25rem .5rem; font-size: .75rem; }
+.p26-wrap .p26-card h2 { font-size: 1.25rem; margin: 0 0 .5rem; color: var(--p26-ink); }
+.p26-wrap .description { color: var(--p26-muted); margin: 0 0 1rem; }
+.p26-wrap .button { border-radius: .4rem; }
+.p26-wrap .button:not(.button-primary) { color: var(--p26-navy); border-color: var(--p26-navy); background: #fff; }
+.p26-wrap .button:not(.button-primary):hover { background: #f2f6f8; }
+.p26-wrap .button-primary { background: var(--p26-navy); border-color: var(--p26-navy); color: #fff; padding-inline: 1rem; }
+.p26-wrap .button-primary:hover { background: #063b5d; border-color: #063b5d; }
+.p26-wrap :is(button, a, select, input, summary, [tabindex]):focus-visible { outline: .1875rem solid #d95b00; outline-offset: .125rem; box-shadow: none; }
+.p26-wrap .nav-tab-wrapper { display: flex; flex-wrap: wrap; gap: .25rem; padding-top: 0; }
+.p26-wrap .nav-tab { float: none; margin: 0; cursor: pointer; }
+.p26-wrap .nav-tab-active { border-bottom: .1875rem solid var(--p26-orange); color: var(--p26-navy); background: #fff; }
+.p26-main-tabs { margin-top: 1.5rem; }
+.p26-table-scroll { overflow-x: auto; max-width: 100%; }
+.p26-table-scroll table { min-width: 35rem; }
+.p26-wrap .p26-post-type, .p26-wrap .p26-context { width: 100%; max-width: none; }
+.p26-save-hint { display: inline-block; margin-left: .75rem; color: var(--p26-muted); }
+.p26-reference { border-top: .0625rem solid var(--p26-border); padding: 1rem 0; margin-top: 1.5rem; }
+.p26-reference summary { font-weight: 600; cursor: pointer; }
+.p26-reference code { overflow-wrap: anywhere; }
+.p26-wrap [hidden] { display: none; }
+@media (max-width: 48.875rem) {
+    .p26-hero { padding: 2rem 1rem 1.25rem; }
+    .p26-version { right: 1rem; }
+    .p26-hero h2 { font-size: 1.75rem; }
+    .p26-card { padding: 1rem; }
+    .p26-save-hint { display: block; margin: .5rem 0 0; }
 }

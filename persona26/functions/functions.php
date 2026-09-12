@@ -72,7 +72,9 @@ function p26_get_settings(): array {
     $settings = get_option(P26_SETTINGS_OPTION);
     if (!is_array($settings)) $settings = [];
 
-    $settings['tracked'] = array_values($settings['tracked'] ?? []);
+    $settings['tracked'] = array_values(is_array($settings['tracked'] ?? null) ? $settings['tracked'] : []);
+
+    $settings['tracked'] = array_map(static fn($row) => is_array($row) ? $row : [], $settings['tracked']);
 
     if (count($settings['tracked']) < 2) {
         $settings['tracked'] = array_pad(
@@ -86,7 +88,8 @@ function p26_get_settings(): array {
     if (empty($settings['tracked'][1]['context'])) $settings['tracked'][1]['context'] = 'Interests';
 
     foreach ($settings['tracked'] as &$row) {
-        $post_type = (string) ($row['post_type'] ?? '');
+        $row = is_array($row) ? $row : [];
+        $post_type = is_string($row['post_type'] ?? null) ? $row['post_type'] : '';
         $row['post_type'] = post_type_exists($post_type) ? $post_type : '';
         $row['context']   = sanitize_text_field($row['context'] ?? '');
     }
@@ -94,7 +97,7 @@ function p26_get_settings(): array {
 
     $settings['content_post_types'] = array_values(
         array_filter(
-            array_map('strval', $settings['content_post_types'] ?? []),
+            array_filter(is_array($settings['content_post_types'] ?? null) ? $settings['content_post_types'] : [], 'is_string'),
             'post_type_exists'
         )
     );
@@ -220,7 +223,7 @@ function p26_build_users_heatmap(array $settings, array $rows, array $cols): arr
     global $wpdb;
 
     $scope = p26_scope_post_types($settings);
-    if (!$scope || !$rows || !$cols) {
+    if (!$scope || !$rows || !$cols || !p26_analytics_available()) {
         return ['counts'=>[], 'max'=>0, 'visitors_total'=>0];
     }
 
@@ -267,26 +270,28 @@ function p26_build_users_heatmap(array $settings, array $rows, array $cols): arr
         $in = implode(',', array_fill(0, count($batch), '%d'));
 
         // 2) Fetch (visitor_id, singular_id) pairs for all sessions/views in batch
-        // Note: We only rely on columns shown in your screenshots:
+        // Join the supported Independent Analytics session/view/resource schema.
         // sessions.session_id, sessions.visitor_id
         // views.session_id, views.resource_id
-        // resources.resource_id, resources.singular_id
+        // resources.id, resources.singular_id
+        $scope_in = implode(',', array_fill(0, count($scope), '%s'));
         $sql = "
-            SELECT s.visitor_id AS visitor_id, r.singular_id AS post_id
+            SELECT DISTINCT s.visitor_id AS visitor_id, r.singular_id AS post_id
             FROM {$sessions} s
             INNER JOIN {$views} v ON v.session_id = s.session_id
             INNER JOIN {$resources} r ON r.id = v.resource_id
+            INNER JOIN {$wpdb->posts} p ON p.ID = r.singular_id
             WHERE s.visitor_id IN ($in)
+              AND p.post_status = 'publish'
+              AND p.post_type IN ($scope_in)
               AND r.singular_id IS NOT NULL
               AND r.singular_id <> 0
         ";
         
 
         // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- placeholders are safe, we still prepare below
-        $pairs = $wpdb->get_results($wpdb->prepare($sql, ...$batch));
+        $pairs = $wpdb->get_results($wpdb->prepare($sql, array_merge($batch, $scope)));
         
-        // var_dump($wpdb->prepare($sql, ...$batch));
-        // die();
 
 
         if (!$pairs) continue;
@@ -376,4 +381,25 @@ function p26_build_users_heatmap(array $settings, array $rows, array $cols): arr
 function p26_post_label(WP_Post $p): string {
     $t = trim((string)$p->post_title);
     return ($t !== '') ? $t : '(untitled #' . (int)$p->ID . ')';
+}
+
+/** Optional analytics must not generate queries against missing integration tables. */
+function p26_analytics_available(): bool {
+    if (!class_exists('IAWP\Models\Visitor')) {
+        return false;
+    }
+    global $wpdb;
+    static $available = array();
+    $site = get_current_blog_id();
+    if (array_key_exists($site, $available)) {
+        return $available[$site];
+    }
+    foreach (array(p26_map_table_name(), p26_ia_table('sessions'), p26_ia_table('views'), p26_ia_table('resources')) as $table) {
+        if ($table !== $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)))) {
+            $available[$site] = false;
+            return false;
+        }
+    }
+    $available[$site] = true;
+    return true;
 }

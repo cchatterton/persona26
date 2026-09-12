@@ -1,8 +1,9 @@
-# Persona26
+# TN Persona26
 
 Author: Techn
-Version: 0.6
-Status: Production
+Version: 0.6.1
+Status: Release
+Branding: Author Branded (Techn settings); Extension Branded (Gravity Forms)
 
 ## Purpose
 
@@ -36,3 +37,7 @@ Radio and checkbox fields can be populated from Persona26 dimensions by adding a
 ## Future Considerations
 
 Large installations may benefit from moving alignment reporting to a dedicated indexed data model.
+
+## Operations
+
+See `readme.txt` for installation, browser storage, external services, data retention and caching considerations. Deactivation retains data. Clear dimension rows without reindexing later keys.

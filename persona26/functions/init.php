@@ -12,23 +12,27 @@ function p26_table_name(): string {
     return $wpdb->prefix . 'independent_analytics_p26';
 }
 
-/**
- * Plugin activation: create table + store schema version.
- */
+/** Initialise each site's schema lazily, including newly created network sites. */
 function p26_activate(): void {
-    p26_create_table();
-    update_option('p26_db_version', P26_DB_VERSION, true);
+    p26_maybe_upgrade_database();
 }
 
-/**
- * Plugin deactivation: drop table (derived data; safe to rebuild).
- */
-function p26_deactivate(): void {
+function p26_maybe_upgrade_database(): void {
+    if (P26_DB_VERSION === get_option('p26_db_version')) {
+        return;
+    }
+    p26_create_table();
     global $wpdb;
     $table = p26_table_name();
-    $wpdb->query("DROP TABLE IF EXISTS {$table}");
-    // optional: cleanup version option too
-    delete_option('p26_db_version');
+    if ($table === $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $wpdb->esc_like($table)))) {
+        update_option('p26_db_version', P26_DB_VERSION, false);
+    }
+}
+add_action('init', 'p26_maybe_upgrade_database', 1);
+
+/** Deactivation must preserve historical mappings, settings and targets. */
+function p26_deactivate(): void {
+    wp_clear_scheduled_hook('p26_alignment_mirror_migration_batch');
 }
 
 /**

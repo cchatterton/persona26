@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
 const P26_GF_PENDING_COOKIE = 'p26_pending_profile';
 
 add_action('gform_loaded', array('P26_Gravity_Forms_Bootstrap', 'load'), 5);
-add_action('wp_head', 'p26_output_gravity_forms_pending_profile_script', 4);
+add_action('wp_enqueue_scripts', 'p26_output_gravity_forms_pending_profile_script', 20);
 add_filter('gform_pre_render', 'p26_populate_gravity_forms_dimension_fields');
 add_filter('gform_pre_validation', 'p26_populate_gravity_forms_dimension_fields');
 add_filter('gform_pre_submission_filter', 'p26_populate_gravity_forms_dimension_fields');
@@ -187,12 +187,12 @@ function p26_gravity_forms_dimension_choices(array $dimension): array {
 }
 
 function p26_gravity_forms_cookie_profile(): array {
-    $raw = isset($_COOKIE['p26_profile']) ? sanitize_text_field(wp_unslash($_COOKIE['p26_profile'])) : '';
+    $raw = isset($_COOKIE['p26_profile']) && is_string($_COOKIE['p26_profile']) ? sanitize_text_field(wp_unslash($_COOKIE['p26_profile'])) : '';
     if ('' === $raw) {
         return array();
     }
 
-    $decoded = json_decode(wp_unslash($raw), true);
+    $decoded = json_decode($raw, true);
     if (!is_array($decoded)) {
         return array();
     }
@@ -383,121 +383,15 @@ function p26_gravity_forms_profile_update_script(array $updates, bool $clear_pen
         return '';
     }
 
-    $profile_key = esc_js('p26_profile');
-    $pending_key = esc_js(P26_GF_PENDING_COOKIE);
-    $updates_json = wp_json_encode($updates);
-    if (!is_string($updates_json)) {
+    $json = wp_json_encode($updates, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+    if (!is_string($json)) {
         return '';
     }
-    $clear = $clear_pending_cookie ? 'true' : 'false';
-    $max_age = (int) P26_Profile::FOREVER;
-
-    return "<script>(function(){try{
-        var PROFILE_KEY='{$profile_key}';
-        var PENDING_KEY='{$pending_key}';
-        var UPDATES={$updates_json};
-        var CLEAR_PENDING={$clear};
-        var MAXAGE={$max_age};
-
-        function getLS(k){ try{ return localStorage.getItem(k)||''; }catch(e){ return ''; } }
-        function setLS(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
-        function getCookie(n){
-            var m=document.cookie.match('(?:^|; )'+n.replace(/([.$?*|{}()\\[\\]\\\\\\/\\+^])/g,'\\\\$1')+'=([^;]*)');
-            return m?decodeURIComponent(m[1]):'';
-        }
-        function setCookie(n,v){
-            try{ document.cookie=n+'='+encodeURIComponent(v)+'; Path=/; Max-Age='+MAXAGE+'; SameSite=Lax'+((location.protocol==='https:')?'; Secure':''); }catch(e){}
-        }
-        function clearCookie(n){
-            try{ document.cookie=n+'=; Path=/; Max-Age=0; SameSite=Lax'; }catch(e){}
-        }
-        function parseJSON(raw,fallback){
-            if(!raw) return fallback;
-            try{ var v=JSON.parse(raw); return (v&&typeof v==='object')?v:fallback; }catch(e){ return fallback; }
-        }
-        function isObj(v){ return !!v&&typeof v==='object'&&!Array.isArray(v); }
-        function arr(v){ return Array.isArray(v)?v.filter(Boolean):[]; }
-        function ensureProfile(v){
-            if(!isObj(v)) v={};
-            if(typeof v.persona!=='string') v.persona='';
-            if(!isObj(v.counters)) v.counters={};
-            return v;
-        }
-        function topAll(map){
-            map=isObj(map)?map:{};
-            var winners=[], max=-1;
-            for(var key in map){
-                if(!Object.prototype.hasOwnProperty.call(map,key)) continue;
-                var val=parseInt(map[key],10)||0;
-                if(val>max){ max=val; winners=[key]; }
-                else if(val===max){ winners.push(key); }
-            }
-            return winners;
-        }
-        function profileValues(profile){
-            if(!profile||typeof profile.persona!=='string'||!profile.persona) return [];
-            return profile.persona.split(/\\s*,\\s*|\\s*\\|\\s*/).map(function(v){ return String(v).trim(); }).filter(Boolean);
-        }
-        function applyBodyClasses(oldProfile,newProfile){
-            if(!document.body) return;
-            profileValues(oldProfile).forEach(function(value){ document.body.classList.remove(value); });
-            profileValues(newProfile).forEach(function(value){ document.body.classList.add(value); });
-        }
-        function rebuildPersona(profile,order){
-            var parts=[];
-            arr(order).forEach(function(dimKey){
-                var winners=topAll(profile.counters[dimKey]);
-                if(winners.length) parts.push(winners.join(' | '));
-            });
-            profile.persona=parts.join(', ');
-            return profile;
-        }
-        function merge(profile,updates){
-            var order=[];
-            arr(updates).forEach(function(update){
-                var dimKey=String(update.dimKey||'').trim();
-                var value=String(update.value||'').trim();
-                var mode=String(update.mode||'increment');
-                if(!dimKey||!value) return;
-
-                arr(update.order).forEach(function(item){
-                    item=String(item||'').trim();
-                    if(item&&order.indexOf(item)===-1) order.push(item);
-                });
-                if(order.indexOf(dimKey)===-1) order.push(dimKey);
-
-                if(!isObj(profile.counters[dimKey])) profile.counters[dimKey]={};
-                if(mode==='replace'){
-                    profile.counters[dimKey]={};
-                    profile.counters[dimKey][value]=1;
-                } else {
-                    profile.counters[dimKey][value]=(parseInt(profile.counters[dimKey][value],10)||0)+1;
-                }
-            });
-            return rebuildPersona(profile,order);
-        }
-
-        var raw=getLS(PROFILE_KEY)||getCookie(PROFILE_KEY);
-        var oldProfile=ensureProfile(parseJSON(raw,{persona:'',counters:{}}));
-        var profile=ensureProfile(parseJSON(JSON.stringify(oldProfile),{persona:'',counters:{}}));
-        profile=merge(profile,UPDATES);
-
-        var encoded=JSON.stringify(profile);
-        setLS(PROFILE_KEY,encoded);
-        setCookie(PROFILE_KEY,encoded);
-
-        window.p26=window.p26||{};
-        window.p26.profile=profile;
-
-        function run(){ applyBodyClasses(oldProfile,profile); }
-        if(document.body){ run(); } else { document.addEventListener('DOMContentLoaded',run,{once:true}); }
-
-        if(CLEAR_PENDING) clearCookie(PENDING_KEY);
-    }catch(e){}})();</script>\n";
+    return '<script>window.p26ApplyProfileUpdates(' . $json . ', ' . ($clear_pending_cookie ? 'true' : 'false') . ');</script>';
 }
 
 function p26_output_gravity_forms_pending_profile_script(): void {
-    if (is_admin() || empty($_COOKIE[P26_GF_PENDING_COOKIE])) {
+    if (is_admin() || empty($_COOKIE[P26_GF_PENDING_COOKIE]) || !is_string($_COOKIE[P26_GF_PENDING_COOKIE])) {
         return;
     }
 
@@ -512,5 +406,5 @@ function p26_output_gravity_forms_pending_profile_script(): void {
         return;
     }
 
-    echo p26_gravity_forms_profile_update_script($updates, true);
+    wp_add_inline_script('p26-profile', 'window.p26ApplyProfileUpdates(' . wp_json_encode(array_values(array_filter($updates, 'is_array')), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ', true);', 'after');
 }

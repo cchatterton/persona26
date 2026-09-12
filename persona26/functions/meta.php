@@ -66,7 +66,7 @@ function p26_profiled_post_types(): array {
 
     return array_values(
         array_filter(
-            array_map('strval', $pts),
+            array_filter($pts, 'is_string'),
             'post_type_exists'
         )
     );
@@ -566,3 +566,9 @@ function p26_refresh_mirrors_for_dimension_item($post_id, $post, $update): void 
     }
 }
 add_action('save_post', 'p26_refresh_mirrors_for_dimension_item', 20, 3);
+
+/** A permanently deleted dimension must not leave stale queryable values. */
+function p26_refresh_mirrors_after_delete($post_id, $post): void {
+    p26_refresh_mirrors_for_dimension_item($post_id, $post, true);
+}
+add_action('after_delete_post', 'p26_refresh_mirrors_after_delete', 20, 2);

@@ -2,6 +2,16 @@
 
 All notable changes to Persona26 are recorded here.
 
+## 0.6.1 - 2026-09-12
+
+- Applied TN Persona26 naming and Techn's navy-and-orange branding to the standalone settings screen, including a live version watermark, responsive panels and native notice placement.
+- Added keyboard-operable tabs, labelled dimension controls, readable heatmaps, save feedback and a compact developer reference; kept Gravity Forms screens extension branded.
+- Replaced API-first updates with repository manifest, public release redirect and API fallback in that order, with validated package URLs, separate failure backoff and manual-check feedback.
+- Preserved visitor history on deactivation, initialised site schemas safely and prevented dimension clearing from shifting later stored keys.
+- Moved identity/profile scripts into versioned WordPress assets, hardened cookie input and retained all configured dimensions when rebuilding profiles.
+- Fixed stale personalisation rules and scalar metadata after dimension deletion; restricted visitor reporting to published content in the configured scope.
+- Added GPL licensing, a WordPress readme with storage/service disclosures, regression tests and packaging validation.
+
 ## 0.6 - 2026-08-10
 
 - Reconciled the production 0.5 Gravity Forms integration with the GitHub 0.3 metadata release.

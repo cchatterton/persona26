@@ -1,8 +1,10 @@
-# Persona26
+# TN Persona26
 
 Persona26 extends Independent Analytics with visitor identity mapping, engagement dimensions, profile data, and front-end personalisation support.
 
-Version 0.6 combines exact scalar dimension metadata for direct WordPress and AlphaBlock queries with the production Gravity Forms integration while preserving the existing Persona26 alignment structure.
+Version 0.6.1 applies the current Techn branding, WordPress plugin and GitHub update standards while retaining the existing alignment structure and Gravity Forms integration.
+
+Branding mode: **Author Branded — Techn** on the standalone settings page; **Extension Branded — Gravity Forms** for embedded feeds. Plugin slug, text domain and existing `p26_` storage keys remain unchanged.
 
 ## Release
 
@@ -13,3 +15,16 @@ scripts/build-plugin-zip.sh
 ```
 
 The ZIP is written to `dist/persona26.zip` and copied to `persona26.zip` in the repository root for direct WordPress upload.
+
+
+Release workflow: run validation, update the version/readmes/changelog and `update.json`, build the ZIP, commit and push, then publish `v<version>` with the matching `persona26.zip` asset. Do not publish the manifest without completing its release.
+
+## Validation
+
+- `php -l` on every distributed PHP file.
+- `node --check` on each JavaScript asset.
+- `node tests/browser-profile.cjs` for profile and Gravity Forms update logic.
+- On a **disposable WordPress installation only**, `wp eval-file tests/wordpress.php` for persistence and update-provider checks. The test changes site settings and creates test data.
+- `scripts/build-plugin-zip.sh` then `python3 scripts/validate-package.py`.
+
+See `STANDARDS_REVIEW.md` for the review findings, verification and limitations.
