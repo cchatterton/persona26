@@ -1,9 +1,9 @@
-=== TN Persona26 ===
+=== Persona26 ===
 Contributors:
 Tags: personalisation, analytics, audience, profiles, gravity-forms
 Requires at least: 6.0
 Tested up to: 7.1
-Stable tag: 0.6.1
+Stable tag: 0.6.2
 Requires PHP: 8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -12,7 +12,7 @@ Visitor profiles, engagement dimensions and content personalisation with optiona
 
 == Description ==
 
-TN Persona26 is authored and maintained by Techn (https://techn.com.au).
+Persona26 is authored and maintained by Techn (https://techn.com.au).
 Configure persona dimensions, assign content targets, inspect engagement matrices,
 and personalise content from a visitor's browser profile.
 
@@ -26,8 +26,8 @@ Gravity Forms settings use Extension Branded mode and retain Gravity Forms UI.
 == Installation ==
 
 1. Upload persona26.zip through Plugins > Add New > Upload Plugin.
-2. Activate TN Persona26.
-3. Open TN Persona26, choose dimension post types and content profiling scope, then save settings.
+2. Activate Persona26.
+3. Open Persona26, choose dimension post types and content profiling scope, then save settings.
 4. Set Persona Targets on individual content items.
 5. When applicable, activate Independent Analytics or configure Gravity Forms feeds.
 
@@ -93,6 +93,10 @@ submitted form values. Their own configuration and privacy documentation govern
 any services those plugins use.
 
 == Changelog ==
+
+= 0.6.2 =
+* Matched Content Planner typography, full-width header, right-aligned pill badges and rounded tabs with top selection accents.
+* Removed TN/Techn from interface naming while retaining Techn authorship.
 
 = 0.6.1 =
 * Applied Techn branding, version watermark, accessible navigation and responsive settings panels.

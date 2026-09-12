@@ -1,7 +1,7 @@
-# TN Persona26
+# Persona26
 
 Author: Techn
-Version: 0.6.1
+Version: 0.6.2
 Status: Release
 Branding: Author Branded (Techn settings); Extension Branded (Gravity Forms)
 

@@ -84,7 +84,7 @@ final class P26_GitHub_Updater {
         }
 
         return (object) array(
-            'name'           => 'TN Persona26',
+            'name'           => 'Persona26',
             'slug'           => self::SLUG,
             'version'        => $version,
             'author'         => 'Techn',
@@ -174,9 +174,9 @@ final class P26_GitHub_Updater {
         $key = 'p26_update_result_' . get_current_user_id();
         $result = get_transient($key);
         $messages = array(
-            'available' => __('A TN Persona26 update is available. Use the update now link below.', 'persona26'),
-            'current' => __('TN Persona26 is up to date.', 'persona26'),
-            'failed' => __('TN Persona26 could not check for updates. Please try again later.', 'persona26'),
+            'available' => __('A Persona26 update is available. Use the update now link below.', 'persona26'),
+            'current' => __('Persona26 is up to date.', 'persona26'),
+            'failed' => __('Persona26 could not check for updates. Please try again later.', 'persona26'),
         );
         if (!is_string($result) || !isset($messages[$result])) {
             return;

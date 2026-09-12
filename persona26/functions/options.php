@@ -10,8 +10,8 @@ add_action('admin_menu', 'p26_register_admin_menu');
 
 function p26_register_admin_menu(): void {
     add_menu_page(
-        'TN Persona26',
-        'TN Persona26',
+        'Persona26',
+        'Persona26',
         'manage_options',
         P26_MENU_SLUG,
         'p26_render_page',
@@ -93,16 +93,18 @@ function p26_render_page(): void {
     $users  = p26_build_users_heatmap($settings, $rows, $cols);
     ?>
     <div class="wrap p26-wrap">
-        <h1 class="screen-reader-text">TN Persona26</h1>
+        <h1 class="screen-reader-text">Persona26</h1>
         <?php if (get_transient('p26_settings_saved_' . get_current_user_id())): ?>
             <?php delete_transient('p26_settings_saved_' . get_current_user_id()); ?>
             <div class="notice notice-success is-dismissible"><p><?php esc_html_e('Persona settings saved.', 'persona26'); ?></p></div>
         <?php endif; ?>
         <header class="p26-hero">
             <span class="p26-version" aria-label="<?php echo esc_attr(sprintf(__('Version %s', 'persona26'), P26_VERSION)); ?>">v<?php echo esc_html(P26_VERSION); ?></span>
-            <p class="p26-eyebrow">Techn · Visitor intelligence</p>
-            <h2>TN Persona26</h2>
-            <p class="p26-hero-lead">Understand your audience. Make every visit more relevant.</p>
+            <div class="p26-hero-copy">
+                <p class="p26-eyebrow">Visitor intelligence</p>
+                <h2>Persona26</h2>
+                <p class="p26-hero-lead">Understand your audience. Make every visit more relevant.</p>
+            </div>
             <div class="p26-capabilities">
                 <span>Content personalisation</span>
                 <?php if (p26_analytics_available()): ?><span>Independent Analytics connected</span><?php endif; ?>

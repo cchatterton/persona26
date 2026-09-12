@@ -1,3 +1,18 @@
+# Persona26 0.6.2 branding correction
+
+The user-approved Content Planner screenshot and source styles override the generic TN naming treatment from the earlier standards review. Techn remains the declared author; the product interface now says Persona26.
+
+- Reused the Content Planner header layout, spacing, title (1.75rem), tagline (0.9375rem), eyebrow (0.75rem), pill typography (0.78rem), and version positioning.
+- Removed the 80rem page cap. Capability pills align right alongside the tagline on desktop and wrap at narrow widths.
+- Matched rounded tab tops, the inset orange top selection accent, and connected white task panels. Keyboard focus remains separate and visible.
+- Verified rendered geometry, product/menu/eyebrow text, keyboard navigation and no page overflow at 1960, 1440, 1024, 768, 390 and 320 CSS-pixel viewport widths.
+- axe WCAG 2 A/AA and 2.1 AA scans returned no violations at those widths. PHP lint and exact package/version validation passed.
+- Author Branded styling remains on the standalone settings page; Gravity Forms retains Extension Branded native surfaces. This is a presentation update; the prior integration-test limitations below still apply.
+
+Release: 0.6.2 with persona26.zip, following the established commit/push/tag/release workflow. Native upgrade verification is recorded after publication.
+
+---
+
 # TN Persona26 0.6.1 standards review
 
 Reviewed against `cchatterton/codex-standards` commit `156c5e1821663593c89fa4eda64d851a25b5280c` on 12 September 2026:

@@ -2,6 +2,13 @@
 
 All notable changes to Persona26 are recorded here.
 
+## 0.6.2 - 2026-09-12
+
+- Matched the Content Planner reference with a full-width layout, compact header and matching title, tagline and badge typography.
+- Removed TN/Techn from product labels, menus and the header eyebrow while retaining Techn author metadata.
+- Right-aligned translucent pill badges alongside the tagline on desktop, with responsive wrapping on smaller screens.
+- Matched rounded-top tabs, inset orange top selection accents and connected white working panels; retained keyboard navigation and visible focus.
+
 ## 0.6.1 - 2026-09-12
 
 - Applied TN Persona26 naming and Techn's navy-and-orange branding to the standalone settings screen, including a live version watermark, responsive panels and native notice placement.
