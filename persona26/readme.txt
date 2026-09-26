@@ -3,8 +3,8 @@ Contributors:
 Tags: personalisation, analytics, audience, profiles, gravity-forms
 Requires at least: 7.0
 Tested up to: 7.1.2
-Stable tag: 0.7.5
-Requires PHP: 8.5
+Stable tag: 0.7.6
+Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -129,6 +129,9 @@ submitted form values. Their own configuration and privacy documentation govern
 any services those plugins use.
 
 == Changelog ==
+
+= 0.7.6 =
+* Lower the PHP requirement to 7.4 to match WordPress 7.0; update the controller installation compatibility check.
 
 = 0.7.5 =
 * Replace the independent updater with TN Update Controller integration.

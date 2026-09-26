@@ -29,8 +29,8 @@ if (!function_exists('tnuc_client_register')) {
         if (!current_user_can('install_plugins') || (is_multisite() && !current_user_can('manage_network_plugins'))) { wp_die('You cannot install this controller.'); }
         check_admin_referer('tnuc_bootstrap_install');
         global $wp_version;
-        if (version_compare(PHP_VERSION, '8.1', '<') || version_compare($wp_version, '6.5', '<')) {
-            wp_die('Techn Update Controller requires WordPress 6.5 and PHP 8.1 or later. This plugin can continue to run without it.');
+        if (version_compare(PHP_VERSION, '7.4', '<') || version_compare($wp_version, '6.5', '<')) {
+            wp_die('Techn Update Controller requires WordPress 6.5 and PHP 7.4 or later. This plugin can continue to run without it.');
         }
         if (!wp_is_file_mod_allowed('tnuc_bootstrap')) { wp_die('File modifications are disabled.'); }
         require_once ABSPATH . 'wp-admin/includes/plugin-install.php';

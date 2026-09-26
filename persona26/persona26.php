@@ -2,9 +2,9 @@
 /**
  * Plugin Name: Persona26
  * Description: Visitor profiles, engagement dimensions and personalisation with Independent Analytics and Gravity Forms.
- * Version: 0.7.5
+ * Version: 0.7.6
  * Requires at least: 7.0
- * Requires PHP: 8.5
+ * Requires PHP: 7.4
  * Update URI: https://github.com/cchatterton/persona26
  * Author: Techn
  * Author URI: https://techn.com.au
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('P26_VERSION', '0.7.5');
+define('P26_VERSION', '0.7.6');
 define('P26_PLUGIN_FILE', __FILE__);
 define('P26_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('P26_PLUGIN_URL', plugin_dir_url(__FILE__));

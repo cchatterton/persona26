@@ -6,6 +6,11 @@
 - Skip references to deleted records, retain valid selections and report the skipped count without blocking migration.
 - Preserve taxonomy identifiers, original relationship metadata and exact rollback data.
 
+## 0.7.6 - 2026-09-26
+
+- Lower the PHP requirement to 7.4, matching WordPress 7.0.
+- Allow the PHP 7.4-compatible TN Update Controller bootstrap.
+
 ## 0.7.5 - 2026-09-26
 
 - Require WordPress 7.0+ and PHP 8.5+ for this release.
