@@ -184,4 +184,4 @@ No production WordPress site was changed.
 
 ## Controller migration 0.7.5
 
-The new minimums are WordPress 7.0 and PHP 8.5. TN Update Controller now owns release discovery; the previous updater assessment above is historical. See CONTROLLER-MIGRATION.md for current integration, validation and release requirements.
+The current minimums are WordPress 7.0 and PHP 7.4 (corrected in 0.7.6 after runtime validation). TN Update Controller now owns release discovery; the previous updater assessment above is historical. See CONTROLLER-MIGRATION.md for current integration, validation and release requirements.

@@ -1,6 +1,6 @@
 {
-  "version": "0.7.5",
-  "body": "## 0.7.5 - 2026-09-26\n\n- Require WordPress 7.0+ and PHP 8.5+ for this release.\n\n- Replace the independent GitHub updater with the version 1 TN Update Controller integration.\n- Add local Install/Activate/Check controller actions and standardise Techn author/repository metadata.\n- Preserve plugin identity, feature code, settings and activation scope; no feature-plugin release discovery runs during page rendering.\n",
+  "version": "0.7.6",
+  "body": "## 0.7.6 - 2026-09-26\n\n- Lower the PHP requirement to 7.4, matching WordPress 7.0.\n- Allow the PHP 7.4-compatible TN Update Controller bootstrap.\n",
   "requires": "7.0",
-  "requires_php": "8.5"
+  "requires_php": "7.4"
 }
