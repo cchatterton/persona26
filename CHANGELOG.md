@@ -6,6 +6,14 @@
 - Skip references to deleted records, retain valid selections and report the skipped count without blocking migration.
 - Preserve taxonomy identifiers, original relationship metadata and exact rollback data.
 
+## 0.7.5 - 2026-09-26
+
+- Require WordPress 7.0+ and PHP 8.5+ for this release.
+
+- Replace the independent GitHub updater with the version 1 TN Update Controller integration.
+- Add local Install/Activate/Check controller actions and standardise Techn author/repository metadata.
+- Preserve plugin identity, feature code, settings and activation scope; no feature-plugin release discovery runs during page rendering.
+
 ## 0.7.3 - 2026-09-12
 
 - Focus migration on saved site configuration; remove source-file scanning and its commit blockers.

@@ -17,7 +17,7 @@ scripts/build-plugin-zip.sh
 The ZIP is written to `dist/persona26.zip` and copied to `persona26.zip` in the repository root for direct WordPress upload.
 
 
-Release workflow: run validation, update the version/readmes/changelog and `update.json`, build the ZIP, commit and push, then publish `v<version>` with the matching `persona26.zip` asset. Do not publish the manifest without completing its release.
+Release workflow: run validation, update the version/readmes/changelog, build the ZIP, commit and push, then publish `v<version>` with the matching `persona26.zip` asset. Publish legacy update.json and controller catalogue metadata only after verifying the uploaded release asset.
 
 ## Validation
 
@@ -38,3 +38,9 @@ record counts and blockers, then applies the reviewed plan only on explicit comm
 After checking migrated pages, switch off Personas. Recovery remains on the wizard tab while a committed snapshot exists.
 
 See [migration design and limits](MIGRATION.md) before a staging migration.
+
+## Controller migration — 0.7.5
+
+Updates are now supplied by [TN Update Controller](https://github.com/cchatterton/tn-update-controller). The old independent updater has been removed. Plugin identity, feature settings and activation scope are unchanged. Install/activate/check links use local controller detection and never fetch release metadata while rendering. Legacy update guidance below or in historical notes is superseded by this controller integration.
+
+Release order: build and validate the ZIP, publish its matching GitHub release asset, then publish verified controller catalogue metadata. Existing update.json endpoints are maintained only for older, not-yet-migrated installations, after asset verification.

@@ -181,3 +181,7 @@ No production WordPress site was changed.
 - No WordPress.org contributor username was verified. `Contributors` is deliberately empty rather than inventing an account; confirm a real contributor and run the official readme validator before any WordPress.org submission. This release uses GitHub distribution.
 - Existing long-lived first-party storage remains unchanged. `readme.txt` documents storage, retention, optional integrations, GitHub requests and page-cache considerations. This update does not add a consent platform or automatic data purge.
 - Clearing a dimension retains its stored position. Reusing that position for a different concept still requires reviewing historical targets/profiles.
+
+## Controller migration 0.7.5
+
+The new minimums are WordPress 7.0 and PHP 8.5. TN Update Controller now owns release discovery; the previous updater assessment above is historical. See CONTROLLER-MIGRATION.md for current integration, validation and release requirements.

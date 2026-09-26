@@ -1,10 +1,10 @@
 === Persona26 ===
 Contributors:
 Tags: personalisation, analytics, audience, profiles, gravity-forms
-Requires at least: 6.0
-Tested up to: 7.1
-Stable tag: 0.7.4
-Requires PHP: 8.1
+Requires at least: 7.0
+Tested up to: 7.1.2
+Stable tag: 0.7.5
+Requires PHP: 8.5
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -32,7 +32,7 @@ Gravity Forms settings use Extension Branded mode and retain Gravity Forms UI.
 5. When applicable, activate Independent Analytics or configure Gravity Forms feeds.
 
 Updates are delivered through the native WordPress Plugins screen. Use the
-plugin's Check for updates link, then update now when a release is available.
+plugin's controller setup/check link, then update now when a release is available.
 
 == Frequently Asked Questions ==
 
@@ -117,13 +117,8 @@ record, not a replacement for a complete site backup.
 
 == External services ==
 
-GitHub hosts update metadata and release downloads. During WordPress update
-checks, the server requests the repository's update.json from
-raw.githubusercontent.com, falling back to github.com release redirects and then
-api.github.com only if necessary. Requests include the server IP address, the
-requested repository URL and a plugin/version User-Agent. WordPress downloads
-the release ZIP when an administrator installs an update. No visitor IDs,
-profiles, form values or site credentials are sent by this plugin to GitHub.
+Update discovery and release details are supplied by TN Update Controller. This plugin does not independently request release metadata, repository readmes or changelogs. The explicit controller-install action downloads its official GitHub release ZIP; see Controller installation service below.
+
 
 GitHub terms: https://docs.github.com/en/site-policy/github-terms/github-terms-of-service
 GitHub privacy: https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement
@@ -134,6 +129,11 @@ submitted form values. Their own configuration and privacy documentation govern
 any services those plugins use.
 
 == Changelog ==
+
+= 0.7.5 =
+* Replace the independent updater with TN Update Controller integration.
+* Standardise author and plugin-row links; preserve feature settings and plugin identity.
+* Require WordPress 7.0+ and PHP 8.5+.
 
 = 0.7.4 =
 * Added saved JSON/ACF configuration, AIOSEO and cache post-type dictionary conversion.
@@ -181,3 +181,13 @@ any services those plugins use.
 = 0.6.1 =
 Existing settings, alignment keys and browser storage names are retained. Clear
 replaces row removal to preserve dimension positions. Deactivation now keeps data.
+
+== Managed updates ==
+
+Install and activate TN Update Controller to discover and install updates. The plugin row offers Install Techn Update Controller, Activate Techn Update Controller, or Check for updates according to local state and permissions. Feature operation does not require the controller. No release lookup happens while rendering this plugin's row. On multisite the controller must be network active. This plugin release requires WordPress 7.0 and PHP 8.5 or later.
+
+== Controller installation service ==
+
+Only an explicit authorised Install Techn Update Controller action downloads the official controller ZIP from GitHub. No plugin settings or site inventory are submitted; GitHub receives the server IP address and normal request metadata. Routine update discovery is delegated to the installed controller. Repository links open GitHub when selected.
+Terms: https://docs.github.com/en/site-policy/github-terms/github-terms-of-service
+Privacy: https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement

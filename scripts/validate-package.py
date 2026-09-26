@@ -10,7 +10,8 @@ plugin = root / 'persona26'
 main = (plugin / 'persona26.php').read_text()
 version = re.search(r'\* Version:\s*(\S+)', main)[1]
 assert re.search(r"define\('P26_VERSION', '([^']+)'\)", main)[1] == version
-assert json.loads((root / 'update.json').read_text())['version'] == version
+# Legacy update.json advances only after the release asset has been verified.
+assert ' * Techn Controller API: 1' in main
 assert re.search(r'^Stable tag:\s*(\S+)', (plugin / 'readme.txt').read_text(), re.M)[1] == version
 assert f'## {version} -' in (root / 'CHANGELOG.md').read_text()
 assert ' * Plugin URI:' not in main
