@@ -37,3 +37,38 @@ const before=storage.get('p26_profile');
 vm.runInContext(script,context);
 assert.equal(storage.get('p26_profile'),before);
 console.log('PASS: page counters, cross-dimension retention, Gravity Forms replace/multiselect, body classes, unsafe keys, read-only debug');
+
+// Explicit query selections are already validated against WordPress by PHP.
+context.p26ProfileAction='';
+context.p26PageProfileData={order:['d0','d3'],dimensions:{d3:['nsw']},selections:{d3:'qld',d0:'parents'}};
+storage.set('p26_profile',JSON.stringify({persona:'nsw',counters:{d3:{nsw:260,tas:259,qld:259}}}));
+classes.clear(); classes.add('nsw');
+vm.runInContext(script,context);
+profile=JSON.parse(storage.get('p26_profile'));
+assert.deepEqual(profile.counters.d3,{nsw:261,tas:259,qld:262});
+assert.deepEqual(profile.counters.d0,{parents:1});
+assert.equal(profile.persona,'parents, qld');
+assert(!classes.has('nsw') && classes.has('qld') && classes.has('parents'));
+assert.equal(decodeURIComponent(cookies.get('p26_profile')),storage.get('p26_profile'));
+vm.runInContext(script,context);
+assert.equal(JSON.parse(storage.get('p26_profile')).counters.d3.qld,263);
+context.p26PageProfileData.dimensions={};
+storage.clear();
+cookies.set('p26_profile',encodeURIComponent(JSON.stringify({persona:'nsw',counters:{d3:{nsw:260,tas:259,qld:259}}})));
+vm.runInContext(script,context);
+assert.equal(JSON.parse(storage.get('p26_profile')).counters.d3.qld,261);
+for (const action of ['get','clear']) {
+    context.p26ProfileAction=action;
+    const saved=storage.get('p26_profile');
+    vm.runInContext(script,context);
+    assert.equal(storage.get('p26_profile'),saved);
+}
+context.p26ProfileAction='show';
+context.p26PageProfileData.selections={d3:'__proto__',d9:'unknown'};
+const saved=storage.get('p26_profile');
+vm.runInContext(script,context);
+assert.equal(storage.get('p26_profile'),saved);
+context.p26PageProfileData.selections={d3:'qld'};
+vm.runInContext(script,context);
+assert.equal(JSON.parse(storage.get('p26_profile')).counters.d3.qld,262);
+console.log('PASS: URL boosts after page increments, multiple/empty dimensions, reloads, cookie fallback/mirror, classes, get/clear/show, unsafe selections');

@@ -3,7 +3,7 @@ Contributors:
 Tags: personalisation, analytics, audience, profiles, gravity-forms
 Requires at least: 7.0
 Tested up to: 7.1.2
-Stable tag: 0.7.6
+Stable tag: 0.7.7
 Requires PHP: 7.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -130,6 +130,10 @@ any services those plugins use.
 
 == Changelog ==
 
+= 0.7.7 =
+* Select published dimension values through exact CPT query parameters; raise each selected counter to the dimension maximum plus one after page increments.
+* Sync localStorage, cookie, persona and body classes; preserve other counters and get/clear behaviour.
+
 = 0.7.6 =
 * Lower the PHP requirement to 7.4 to match WordPress 7.0; update the controller installation compatibility check.
 
@@ -187,7 +191,7 @@ replaces row removal to preserve dimension positions. Deactivation now keeps dat
 
 == Managed updates ==
 
-Install and activate TN Update Controller to discover and install updates. The plugin row offers Install Techn Update Controller, Activate Techn Update Controller, or Check for updates according to local state and permissions. Feature operation does not require the controller. No release lookup happens while rendering this plugin's row. On multisite the controller must be network active. This plugin release requires WordPress 7.0 and PHP 8.5 or later.
+Install and activate TN Update Controller to discover and install updates. The plugin row offers Install Techn Update Controller, Activate Techn Update Controller, or Check for updates according to local state and permissions. Feature operation does not require the controller. No release lookup happens while rendering this plugin's row. On multisite the controller must be network active. This plugin release requires WordPress 7.0 and PHP 7.4 or later.
 
 == Controller installation service ==
 

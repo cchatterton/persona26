@@ -148,11 +148,39 @@ class P26_Profile {
         return $empty;
     }
 
+    /** Resolve exact configured CPT parameters to published dimension slugs. */
+    protected static function query_selections(string $action): array {
+        if (in_array($action, ['get', 'clear'], true)) return [];
+        $selections = [];
+        foreach (self::dimensions() as $dim) {
+            $post_type = (string) ($dim['post_type'] ?? '');
+            $key = (string) ($dim['key'] ?? '');
+            // The existing persona debug parameter remains reserved.
+            if ($post_type === 'persona' || !post_type_exists($post_type) || !preg_match('/^d[0-9]+$/', $key)) continue;
+            if (!isset($_GET[$post_type]) || !is_string($_GET[$post_type])) continue;
+            $slug = wp_unslash($_GET[$post_type]);
+            if ($slug === '' || in_array($slug, ['__proto__', 'constructor', 'prototype'], true)) continue;
+            $posts = get_posts([
+                'post_type' => $post_type,
+                'name' => $slug,
+                'post_status' => 'publish',
+                'posts_per_page' => 1,
+                'no_found_rows' => true,
+            ]);
+            $post = $posts[0] ?? null;
+            if ($post instanceof WP_Post && $post->post_type === $post_type && $post->post_status === 'publish' && $post->post_name === $slug) {
+                $selections[$key] = $slug;
+            }
+        }
+        return $selections;
+    }
+
     public static function enqueue_assets(): void {
         if (is_admin()) return;
         $action = isset($_GET['persona']) && is_string($_GET['persona']) ? sanitize_key(wp_unslash($_GET['persona'])) : '';
         $data = self::page_data();
         $data['order'] = array_column(self::dimensions(), 'key');
+        $data['selections'] = self::query_selections($action);
         wp_enqueue_script('p26-profile', P26_PLUGIN_URL . 'scripts/persona26-profile.js', array('p26-identity'), P26_VERSION, false);
         wp_add_inline_script('p26-profile', 'window.p26PageProfileData=' . wp_json_encode($data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) . ';window.p26ProfileAction=' . wp_json_encode($action) . ';', 'before');
         if (in_array($action, array('show', 'get', 'clear'), true)) {

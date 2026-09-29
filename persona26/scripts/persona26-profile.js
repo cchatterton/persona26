@@ -232,6 +232,19 @@ window.p26ApplyProfileUpdates = function(updates, clearPending){try{
                 profile.counters[dimKey] = bump(profile.counters[dimKey], values);
             });
 
+            // Explicit URL selections win after this page's normal increments.
+            var selections = isObj(PAGE.selections) ? PAGE.selections : {};
+            order.forEach(function(dimKey){
+                if (!/^d[0-9]+$/.test(dimKey) || !Object.prototype.hasOwnProperty.call(selections, dimKey)) return;
+                var value = selections[dimKey];
+                if (typeof value !== 'string' || !value || ['__proto__', 'constructor', 'prototype'].indexOf(value) !== -1) return;
+                var map = isObj(profile.counters[dimKey]) ? profile.counters[dimKey] : {};
+                var max = 0;
+                Object.keys(map).forEach(function(key){ max = Math.max(max, parseInt(map[key], 10) || 0); });
+                map[value] = max + 1;
+                profile.counters[dimKey] = map;
+            });
+
             profile = rebuildPersona(profile, order);
 
             var encoded = JSON.stringify(profile);

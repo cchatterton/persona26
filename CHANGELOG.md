@@ -1,3 +1,9 @@
+## 0.7.7 - 2026-09-29
+
+- Allow exact tracked CPT query parameters with published post slugs to select a dimension value.
+- After normal page increments, raise each selected counter to its dimension maximum plus one and sync the persona, localStorage, cookie and body classes.
+- Preserve other counters; ignore invalid selections and skip query updates for persona=get and persona=clear.
+
 ## 0.7.4 - 2026-09-12
 
 - Convert saved JSON definitions, post-type dropdown choices and serialized ACF location rules and taxonomy assignments.

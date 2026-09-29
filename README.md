@@ -23,6 +23,7 @@ Release workflow: run validation, update the version/readmes/changelog, build th
 
 - `php -l` on every distributed PHP file.
 - `node --check` on each JavaScript asset.
+- `php tests/query-profile.php` for query selection validation.
 - `node tests/browser-profile.cjs` for profile and Gravity Forms update logic.
 - On a **disposable WordPress installation only**, `wp eval-file tests/wordpress.php` for persistence and update-provider checks. The test changes site settings and creates test data.
 - `scripts/build-plugin-zip.sh` then `python3 scripts/validate-package.py`.
@@ -44,3 +45,20 @@ See [migration design and limits](MIGRATION.md) before a staging migration.
 Updates are now supplied by [TN Update Controller](https://github.com/cchatterton/tn-update-controller). The old independent updater has been removed. Plugin identity, feature settings and activation scope are unchanged. Install/activate/check links use local controller detection and never fetch release metadata while rendering. Legacy update guidance below or in historical notes is superseded by this controller integration.
 
 Release order: build and validate the ZIP, publish its matching GitHub release asset, then publish verified controller catalogue metadata. Existing update.json endpoints are maintained only for older, not-yet-migrated installations, after asset verification.
+
+## Query-string dimension selection
+
+Use the exact registered CPT name and a published post slug, for example
+`?state=qld&__audience=parents` when those CPTs are configured as dimensions.
+After normal page increments, each selected counter becomes the maximum in its
+own dimension plus one, including its own existing count. Other counters remain.
+The persona, localStorage, cookie and body classes are updated together. This
+works on front-end pages without content targets too. Reloading reapplies it;
+future browsing can change the winner. Unknown parameters, array values and
+invalid, unpublished or wrong-CPT slugs are ignored. Supply one slug per CPT;
+repeated scalar parameters follow PHP's last-value behaviour.
+
+`persona` remains reserved for debugging: `get` and `clear` skip selections;
+`show` applies them before displaying the profile. A CPT named `persona` cannot
+use this query feature. Page caches must vary by these query parameters or bypass
+caching for selection URLs, because WordPress validates selections per request.
