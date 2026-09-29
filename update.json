@@ -1,6 +1,6 @@
 {
-  "version": "0.7.6",
-  "body": "## 0.7.6 - 2026-09-26\n\n- Lower the PHP requirement to 7.4, matching WordPress 7.0.\n- Allow the PHP 7.4-compatible TN Update Controller bootstrap.\n",
+  "version": "0.7.7",
+  "body": "## 0.7.7 - 2026-09-29\n\n- Allow exact tracked CPT query parameters with published post slugs to select a dimension value.\n- After normal page increments, raise each selected counter to its dimension maximum plus one and sync the persona, localStorage, cookie and body classes.\n- Preserve other counters; ignore invalid selections and skip query updates for persona=get and persona=clear.\n\n",
   "requires": "7.0",
   "requires_php": "7.4"
 }
